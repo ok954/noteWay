@@ -1,1 +1,10 @@
 .claude/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.metadata
+build/
+*.iml
+*.lock
+pubspec.lock
