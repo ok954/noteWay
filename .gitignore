@@ -8,3 +8,5 @@ build/
 *.iml
 *.lock
 pubspec.lock
+hs_err_pid*.log
+replay_pid*.log
