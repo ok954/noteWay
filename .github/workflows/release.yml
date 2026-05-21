@@ -25,6 +25,11 @@ jobs:
           flutter-version: '3.32.1'
           channel: 'stable'
 
+      - name: Setup Visual Studio
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Enable Developer Mode
         shell: powershell
         run: |
