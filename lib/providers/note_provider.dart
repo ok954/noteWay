@@ -15,36 +15,35 @@ final noteSearchProvider = FutureProvider.family<List<Note>, String>((ref, query
   return await repo.searchNotes(query);
 });
 
-class NoteNotifier extends StateNotifier<AsyncValue<List<Note>>> {
-  final NoteRepository _repository;
-
-  NoteNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadNotes();
+class NoteNotifier extends AsyncNotifier<List<Note>> {
+  @override
+  Future<List<Note>> build() async {
+    final repo = ref.read(noteRepositoryProvider);
+    return await repo.getAllNotes();
   }
 
   Future<void> loadNotes() async {
     state = const AsyncValue.loading();
-    try {
-      final notes = await _repository.getAllNotes();
-      state = AsyncValue.data(notes);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    final repo = ref.read(noteRepositoryProvider);
+    state = await AsyncValue.guard(() => repo.getAllNotes());
   }
 
   Future<void> addNote(Note note) async {
-    await _repository.insertNote(note);
-    await loadNotes();
+    final repo = ref.read(noteRepositoryProvider);
+    await repo.insertNote(note);
+    ref.invalidateSelf();
   }
 
   Future<void> updateNote(Note note) async {
-    await _repository.updateNote(note);
-    await loadNotes();
+    final repo = ref.read(noteRepositoryProvider);
+    await repo.updateNote(note);
+    ref.invalidateSelf();
   }
 
   Future<void> deleteNote(String id) async {
-    await _repository.deleteNote(id);
-    await loadNotes();
+    final repo = ref.read(noteRepositoryProvider);
+    await repo.deleteNote(id);
+    ref.invalidateSelf();
   }
 
   Future<void> search(String query) async {
@@ -52,16 +51,9 @@ class NoteNotifier extends StateNotifier<AsyncValue<List<Note>>> {
       await loadNotes();
       return;
     }
-    try {
-      final notes = await _repository.searchNotes(query);
-      state = AsyncValue.data(notes);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    final repo = ref.read(noteRepositoryProvider);
+    state = await AsyncValue.guard(() => repo.searchNotes(query));
   }
 }
 
-final noteNotifierProvider = StateNotifierProvider<NoteNotifier, AsyncValue<List<Note>>>((ref) {
-  final repo = ref.watch(noteRepositoryProvider);
-  return NoteNotifier(repo);
-});
+final noteNotifierProvider = AsyncNotifierProvider<NoteNotifier, List<Note>>(() => NoteNotifier());

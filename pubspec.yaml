@@ -12,7 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # 状态管理
-  flutter_riverpod: ^2.4.0
+  flutter_riverpod: ^3.3.1
 
   # 本地数据库
   sqflite: ^2.3.0
@@ -22,37 +22,37 @@ dependencies:
   shared_preferences: ^2.2.0
 
   # 富文本编辑
-  flutter_quill: ^9.0.0
+  flutter_quill: ^11.5.0
 
   # 布局
   flutter_staggered_grid_view: ^0.7.0
-  fl_chart: ^0.66.0
+  fl_chart: ^1.1.0
 
   # 文件与路径
   path_provider: ^2.1.0
-  file_picker: ^6.0.0
+  file_picker: ^11.0.2
   image_picker: ^1.0.0
-  share_plus: ^7.0.0
+  share_plus: ^12.0.2
 
   # 通知
-  flutter_local_notifications: ^16.0.0
+  flutter_local_notifications: ^20.1.0
 
   # 音效
-  audioplayers: ^5.0.0
+  audioplayers: ^6.6.0
 
   # 工具
   path: ^1.8.0
   uuid: ^4.0.0
   intl: ^0.20.2
   encrypt: ^5.0.0
-  csv: ^5.1.0
-  permission_handler: ^11.0.0
-  package_info_plus: ^5.0.0
+  csv: ^6.0.0
+  permission_handler: ^12.0.1
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

@@ -14,46 +14,43 @@ final todoTypesProvider = FutureProvider<List<TodoType>>((ref) async {
   return await repo.getTodoTypes();
 });
 
-class TodoNotifier extends StateNotifier<AsyncValue<List<Todo>>> {
-  final TodoRepository _repository;
-
-  TodoNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadTodos();
+class TodoNotifier extends AsyncNotifier<List<Todo>> {
+  @override
+  Future<List<Todo>> build() async {
+    final repo = ref.read(todoRepositoryProvider);
+    return await repo.getAllTodos();
   }
 
   Future<void> loadTodos() async {
     state = const AsyncValue.loading();
-    try {
-      final todos = await _repository.getAllTodos();
-      state = AsyncValue.data(todos);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    final repo = ref.read(todoRepositoryProvider);
+    state = await AsyncValue.guard(() => repo.getAllTodos());
   }
 
   Future<void> addTodo(Todo todo) async {
-    await _repository.insertTodo(todo);
-    await loadTodos();
+    final repo = ref.read(todoRepositoryProvider);
+    await repo.insertTodo(todo);
+    ref.invalidateSelf();
   }
 
   Future<void> updateTodo(Todo todo) async {
-    await _repository.updateTodo(todo);
-    await loadTodos();
+    final repo = ref.read(todoRepositoryProvider);
+    await repo.updateTodo(todo);
+    ref.invalidateSelf();
   }
 
   Future<void> deleteTodo(String id) async {
-    await _repository.deleteTodo(id);
-    await loadTodos();
+    final repo = ref.read(todoRepositoryProvider);
+    await repo.deleteTodo(id);
+    ref.invalidateSelf();
   }
 
   Future<void> toggleComplete(Todo todo) async {
     final updated = todo.copyWith(isCompleted: !todo.isCompleted);
-    await _repository.updateTodo(updated);
-    await loadTodos();
+    final repo = ref.read(todoRepositoryProvider);
+    await repo.updateTodo(updated);
+    ref.invalidateSelf();
   }
 }
 
-final todoNotifierProvider = StateNotifierProvider<TodoNotifier, AsyncValue<List<Todo>>>((ref) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return TodoNotifier(repo);
-});
+final todoNotifierProvider = AsyncNotifierProvider<TodoNotifier, List<Todo>>(() => TodoNotifier());

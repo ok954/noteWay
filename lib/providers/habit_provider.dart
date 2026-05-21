@@ -14,40 +14,36 @@ final habitTagsProvider = FutureProvider<List<HabitTag>>((ref) async {
   return await repo.getHabitTags();
 });
 
-class HabitNotifier extends StateNotifier<AsyncValue<List<Habit>>> {
-  final HabitRepository _repository;
-
-  HabitNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadHabits();
+class HabitNotifier extends AsyncNotifier<List<Habit>> {
+  @override
+  Future<List<Habit>> build() async {
+    final repo = ref.read(habitRepositoryProvider);
+    return await repo.getAllHabits();
   }
 
   Future<void> loadHabits() async {
     state = const AsyncValue.loading();
-    try {
-      final habits = await _repository.getAllHabits();
-      state = AsyncValue.data(habits);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    final repo = ref.read(habitRepositoryProvider);
+    state = await AsyncValue.guard(() => repo.getAllHabits());
   }
 
   Future<void> addHabit(Habit habit) async {
-    await _repository.insertHabit(habit);
-    await loadHabits();
+    final repo = ref.read(habitRepositoryProvider);
+    await repo.insertHabit(habit);
+    ref.invalidateSelf();
   }
 
   Future<void> updateHabit(Habit habit) async {
-    await _repository.updateHabit(habit);
-    await loadHabits();
+    final repo = ref.read(habitRepositoryProvider);
+    await repo.updateHabit(habit);
+    ref.invalidateSelf();
   }
 
   Future<void> deleteHabit(String id) async {
-    await _repository.deleteHabit(id);
-    await loadHabits();
+    final repo = ref.read(habitRepositoryProvider);
+    await repo.deleteHabit(id);
+    ref.invalidateSelf();
   }
 }
 
-final habitNotifierProvider = StateNotifierProvider<HabitNotifier, AsyncValue<List<Habit>>>((ref) {
-  final repo = ref.watch(habitRepositoryProvider);
-  return HabitNotifier(repo);
-});
+final habitNotifierProvider = AsyncNotifierProvider<HabitNotifier, List<Habit>>(() => HabitNotifier());
