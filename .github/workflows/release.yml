@@ -107,6 +107,17 @@ jobs:
     needs: [build-windows, build-android]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create tag if manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="manual-$(date +%Y%m%d-%H%M%S)"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -115,6 +126,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG || github.ref_name }}
           files: |
             artifacts/windows-build/noteWay-windows.zip
             artifacts/android-build/noteWay-android.apk
