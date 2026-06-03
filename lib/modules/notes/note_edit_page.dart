@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -21,19 +20,9 @@ class NoteEditPage extends ConsumerStatefulWidget {
 
 class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   final _titleController = TextEditingController();
-  late final QuillController _quillController;
-  final _scrollController = ScrollController();
-  final _focusNode = FocusNode();
+  final _contentController = TextEditingController();
   String? _noteId;
   bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _quillController = QuillController.basic(
-      configurations: const QuillControllerConfigurations(),
-    );
-  }
 
   @override
   void didChangeDependencies() {
@@ -51,30 +40,41 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     if (note != null && mounted) {
       setState(() {
         _titleController.text = note.title ?? '';
+        _contentController.text = _extractPlainText(note.content);
       });
-      _loadContent(note.content);
     }
   }
 
-  void _loadContent(String content) {
+  /// 从 Delta JSON 或纯文本中提取可读文本
+  String _extractPlainText(String content) {
     try {
       final decoded = jsonDecode(content);
       if (decoded is List) {
-        _quillController.document = Document.fromJson(decoded);
-        return;
+        final buffer = StringBuffer();
+        for (final op in decoded) {
+          if (op is Map && op['insert'] is String) {
+            buffer.write(op['insert']);
+          }
+        }
+        return buffer.toString().trim();
       }
     } catch (_) {
-      // 不是 JSON，作为纯文本处理
+      // 不是 JSON，直接返回
     }
-    _quillController.document = Document()..insert(0, content);
+    return content;
+  }
+
+  /// 将纯文本转换为 Delta JSON 格式，保持与富文本编辑器数据兼容
+  String _toDeltaJson(String plainText) {
+    final text = plainText.trim();
+    if (text.isEmpty) return jsonEncode([{'insert': '\n'}]);
+    return jsonEncode([{'insert': '$text\n'}]);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _quillController.dispose();
-    _scrollController.dispose();
-    _focusNode.dispose();
+    _contentController.dispose();
     super.dispose();
   }
 
@@ -99,11 +99,11 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 hintText: '标题',
@@ -112,25 +112,22 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
               ),
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ),
-          const Divider(height: 1),
-          QuillToolbar(
-            controller: _quillController,
-            configurations: const QuillToolbarConfigurations(),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: QuillEditor(
-              controller: _quillController,
-              scrollController: _scrollController,
-              focusNode: _focusNode,
-              configurations: const QuillEditorConfigurations(
-                placeholder: '开始写作...',
-                padding: EdgeInsets.all(16),
+            const Divider(),
+            Expanded(
+              child: TextField(
+                controller: _contentController,
+                decoration: const InputDecoration(
+                  hintText: '开始写作...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -150,13 +147,21 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
 
-      final index = _quillController.selection.baseOffset;
-      _quillController.replaceText(
-        index,
-        0,
-        BlockEmbed.image(destPath),
-        TextSelection.collapsed(offset: index + 1),
+      // 在光标位置插入图片标记
+      final text = _contentController.text;
+      final selection = _contentController.selection;
+      final before = text.substring(0, selection.baseOffset);
+      final after = text.substring(selection.extentOffset);
+      _contentController.text = '$before\n[图片: $fileName]\n$after';
+      _contentController.selection = TextSelection.collapsed(
+        offset: before.length + fileName.length + 10,
       );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('图片已插入')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,11 +174,9 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   Future<void> _saveNote() async {
     if (_isSaving) return;
     final title = _titleController.text.trim();
-    final delta = _quillController.document.toDelta();
-    final contentJson = jsonEncode(delta.toJson());
-    final plainText = _quillController.document.toPlainText().trim();
+    final content = _contentController.text.trim();
 
-    if (title.isEmpty && plainText.isEmpty) {
+    if (title.isEmpty && content.isEmpty) {
       Navigator.pop(context);
       return;
     }
@@ -184,8 +187,8 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     final note = Note(
       id: _noteId ?? const Uuid().v4(),
       title: title.isEmpty ? null : title,
-      content: contentJson,
-      plainText: plainText.isEmpty ? null : plainText,
+      content: _toDeltaJson(content),
+      plainText: content.isEmpty ? null : content,
       createdAt: _noteId == null
           ? now
           : (await ref.read(noteRepositoryProvider).getNoteById(_noteId!))?.createdAt ?? now,
