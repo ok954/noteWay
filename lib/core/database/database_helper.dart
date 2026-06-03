@@ -37,6 +37,52 @@ class DatabaseHelper {
     await db.execute(createHabitTagsTable);
     await db.execute(createCheckinRecordsTable);
     await db.execute(createSettingsTable);
+    await _initDefaultData(db);
+  }
+
+  Future<void> _initDefaultData(Database db) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // 默认待办类型
+    await db.insert('todo_types', {
+      'id': 'work',
+      'name': '工作',
+      'is_builtin': 1,
+      'sort_order': 0,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('todo_types', {
+      'id': 'life',
+      'name': '生活',
+      'is_builtin': 1,
+      'sort_order': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('todo_types', {
+      'id': 'study',
+      'name': '学习',
+      'is_builtin': 1,
+      'sort_order': 2,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    // 默认打卡标签
+    await db.insert('habit_tags', {
+      'id': 'health',
+      'name': '健康',
+      'sort_order': 0,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('habit_tags', {
+      'id': 'learning',
+      'name': '学习',
+      'sort_order': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('habit_tags', {
+      'id': 'habit',
+      'name': '习惯',
+      'sort_order': 2,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    // 初始化最后启动日期
+    await db.insert('settings', {
+      'key': 'last_launch_date',
+      'value': now.toString(),
+      'updated_at': now,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> close() async {
