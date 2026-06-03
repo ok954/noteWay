@@ -21,11 +21,19 @@ class NoteEditPage extends ConsumerStatefulWidget {
 
 class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   final _titleController = TextEditingController();
-  final _quillController = QuillController.basic();
+  late final QuillController _quillController;
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   String? _noteId;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quillController = QuillController.basic(
+      configurations: const QuillControllerConfigurations(),
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -52,8 +60,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     try {
       final decoded = jsonDecode(content);
       if (decoded is List) {
-        final delta = Delta.fromJson(decoded);
-        _quillController.document = Document.fromDelta(delta);
+        _quillController.document = Document.fromJson(decoded);
         return;
       }
     } catch (_) {
@@ -107,24 +114,9 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
             ),
           ),
           const Divider(height: 1),
-          QuillSimpleToolbar(
+          QuillToolbar(
             controller: _quillController,
-            configurations: const QuillSimpleToolbarConfigurations(
-              showBoldButton: true,
-              showItalicButton: true,
-              showUnderLineButton: true,
-              showStrikeThroughButton: true,
-              showListBullets: true,
-              showListNumbers: true,
-              showAlignmentButtons: true,
-              showHeaderStyle: true,
-              showColorButton: false,
-              showBackgroundColorButton: false,
-              showCodeBlock: false,
-              showQuote: true,
-              showLink: false,
-              showSearchButton: false,
-            ),
+            configurations: const QuillToolbarConfigurations(),
           ),
           const Divider(height: 1),
           Expanded(
@@ -158,10 +150,12 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
 
-      _quillController.insertEmbedBlock(
-        index: _quillController.selection.baseOffset,
-        type: BlockEmbed.imageType,
-        data: destPath,
+      final index = _quillController.selection.baseOffset;
+      _quillController.replaceText(
+        index,
+        0,
+        BlockEmbed.image(destPath),
+        TextSelection.collapsed(offset: index + 1),
       );
     } catch (e) {
       if (mounted) {

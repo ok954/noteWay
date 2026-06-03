@@ -6,18 +6,14 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be overridden in ProviderScope');
 });
 
-final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return ThemeModeNotifier(prefs);
-});
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
-class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  final SharedPreferences _prefs;
+class ThemeModeNotifier extends Notifier<ThemeMode> {
   static const String _key = 'theme_mode';
 
-  ThemeModeNotifier(this._prefs) : super(_loadThemeMode(_prefs));
-
-  static ThemeMode _loadThemeMode(SharedPreferences prefs) {
+  @override
+  ThemeMode build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
     final value = prefs.getString(_key);
     switch (value) {
       case 'light':
@@ -30,6 +26,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
+    final prefs = ref.read(sharedPreferencesProvider);
     String value;
     switch (mode) {
       case ThemeMode.light:
@@ -42,7 +39,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
         value = 'system';
         break;
     }
-    await _prefs.setString(_key, value);
+    await prefs.setString(_key, value);
     state = mode;
   }
 }

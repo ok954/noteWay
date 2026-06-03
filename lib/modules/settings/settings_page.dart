@@ -22,18 +22,11 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    String themeLabel;
-    switch (themeMode) {
-      case ThemeMode.light:
-        themeLabel = '浅色';
-        break;
-      case ThemeMode.dark:
-        themeLabel = '深色';
-        break;
-      case ThemeMode.system:
-        themeLabel = '跟随系统';
-        break;
-    }
+    final themeLabel = switch (themeMode) {
+      ThemeMode.light => '浅色',
+      ThemeMode.dark => '深色',
+      ThemeMode.system => '跟随系统',
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -279,7 +272,7 @@ class SettingsPage extends ConsumerWidget {
     if (confirm != true) return;
 
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
