@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/checkin_record.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
+import '../../repositories/habit_repository.dart';
 import '../../router.dart';
 
 class HabitListPage extends ConsumerWidget {
@@ -52,6 +54,17 @@ class HabitListPage extends ConsumerWidget {
 
   Future<void> _checkinHabit(BuildContext context, WidgetRef ref, Habit habit) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final record = CheckinRecord(
+      id: const Uuid().v4(),
+      habitId: habit.id,
+      recordType: 'count',
+      startTime: now,
+      endTime: now,
+      duration: 0,
+      isCompleted: true,
+      createdAt: now,
+    );
+    await ref.read(habitRepositoryProvider).insertCheckinRecord(record);
     final updated = habit.copyWith(
       todayCount: habit.todayCount + 1,
       checkinCount: habit.checkinCount + 1,
