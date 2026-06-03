@@ -12,10 +12,14 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_helper.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/todo_provider.dart';
+import '../../router.dart';
+import 'cloud_data_page.dart';
+import 'cloud_sync_page.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -28,6 +32,9 @@ class SettingsPage extends ConsumerWidget {
       ThemeMode.dark => '深色',
       ThemeMode.system => '跟随系统',
     };
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState.value?.isLoggedIn ?? false;
+    final username = authState.value?.user?.username ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -46,27 +53,51 @@ class SettingsPage extends ConsumerWidget {
         children: [
           // 账户与云端
           _buildSectionTitle('账户与云端'),
-          _buildSettingItem(
-            icon: Icons.person_outline,
-            iconColor: const Color(0xFF5B8DEF),
-            title: '登录账号',
-            trailingText: '未登录',
-            onTap: () => _showDevNotice(context, '登录功能'),
-          ),
-          _buildSettingItem(
-            icon: Icons.cloud_sync_outlined,
-            iconColor: const Color(0xFF5B8DEF),
-            title: '云端同步',
-            trailingText: '自动同步: 关闭',
-            onTap: () => _showDevNotice(context, '云端同步'),
-          ),
-          _buildSettingItem(
-            icon: Icons.cloud_download_outlined,
-            iconColor: const Color(0xFF5B8DEF),
-            title: '云端数据管理',
-            trailingText: '最近备份: 无',
-            onTap: () => _showDevNotice(context, '云端数据管理'),
-          ),
+          if (!isLoggedIn)
+            _buildSettingItem(
+              icon: Icons.person_outline,
+              iconColor: const Color(0xFF5B8DEF),
+              title: '登录账号',
+              trailingText: '未登录',
+              onTap: () => Navigator.pushNamed(context, AppRoutes.login),
+            )
+          else ...[
+            _buildSettingItem(
+              icon: Icons.person,
+              iconColor: const Color(0xFF5B8DEF),
+              title: username,
+              trailingText: '已登录',
+              onTap: null,
+            ),
+            _buildSettingItem(
+              icon: Icons.cloud_sync_outlined,
+              iconColor: const Color(0xFF5B8DEF),
+              title: '云端同步',
+              trailingText: '自动同步: 关闭',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CloudSyncPage()),
+              ),
+            ),
+            _buildSettingItem(
+              icon: Icons.cloud_download_outlined,
+              iconColor: const Color(0xFF5B8DEF),
+              title: '云端数据管理',
+              trailingText: '查看备份',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CloudDataPage()),
+              ),
+            ),
+            _buildSettingItem(
+              icon: Icons.logout,
+              iconColor: Colors.red,
+              title: '退出登录',
+              trailingText: '',
+              showArrow: false,
+              onTap: () => _confirmLogout(context, ref),
+            ),
+          ],
           // 数据管理
           _buildSectionTitle('数据管理'),
           _buildSettingItem(
@@ -88,6 +119,14 @@ class SettingsPage extends ConsumerWidget {
             title: '回收站',
             trailingText: '0条待恢复',
             onTap: () => _showDevNotice(context, '回收站'),
+          ),
+          _buildSettingItem(
+            icon: Icons.delete_forever,
+            iconColor: AppColors.danger,
+            title: '清除所有数据',
+            trailingText: '',
+            showArrow: false,
+            onTap: () => _showClearConfirm(context, ref),
           ),
           // 个性化
           _buildSectionTitle('个性化'),
@@ -150,10 +189,7 @@ class SettingsPage extends ConsumerWidget {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF999999)),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF999999))),
     );
   }
 
@@ -163,6 +199,7 @@ class SettingsPage extends ConsumerWidget {
     required String title,
     String? trailingText,
     VoidCallback? onTap,
+    bool showArrow = true,
   }) {
     return Card(
       elevation: 0,
@@ -176,16 +213,11 @@ class SettingsPage extends ConsumerWidget {
             children: [
               Icon(icon, size: 22, color: iconColor),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text(title, style: const TextStyle(fontSize: 15, color: Color(0xFF333333))),
-              ),
-              if (trailingText != null)
-                Text(
-                  trailingText,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
-                ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCCCCCC)),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 15, color: Color(0xFF333333)))),
+              if (trailingText != null && trailingText.isNotEmpty)
+                Text(trailingText, style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+              if (showArrow) const SizedBox(width: 4),
+              if (showArrow) const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCCCCCC)),
             ],
           ),
         ),
@@ -197,12 +229,34 @@ class SettingsPage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('$featureName'),
+        title: Text(featureName),
         content: Text('「$featureName」功能正在开发中，敬请期待！'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('退出登录'),
+        content: const Text('退出后将无法使用云端同步功能，确定要退出吗？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已退出登录')),
+                );
+              }
+            },
+            child: const Text('退出', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -213,20 +267,14 @@ class SettingsPage extends ConsumerWidget {
     final current = ref.read(themeModeProvider);
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-              ),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 16),
               const Text('选择主题', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -315,15 +363,11 @@ class SettingsPage extends ConsumerWidget {
       await file.writeAsString(csvString);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('数据已导出至: $outputPath')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('数据已导出至: $outputPath')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导出失败: $e')));
       }
     }
   }
@@ -343,10 +387,7 @@ class SettingsPage extends ConsumerWidget {
     if (confirm != true) return;
 
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
+      final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
       if (result == null || result.files.single.path == null) return;
 
       final file = File(result.files.single.path!);
