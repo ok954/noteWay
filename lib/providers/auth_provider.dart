@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
 import '../repositories/cloud_repository.dart';
+import 'settings_provider.dart';
 
 final authRepositoryProvider = Provider((ref) => CloudRepository());
 
