@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/note_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../providers/todo_provider.dart';
 import '../../router.dart';
 
@@ -12,8 +13,8 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final todoStats = ref.watch(_todoStatsProvider);
-    final habitStats = ref.watch(_habitStatsProvider);
+    final todoStats = ref.watch(todoStatsProvider);
+    final habitStats = ref.watch(habitStatsProvider);
     final habitsAsync = ref.watch(habitNotifierProvider);
     final notesAsync = ref.watch(noteNotifierProvider);
 
@@ -409,18 +410,3 @@ class HomePage extends ConsumerWidget {
     return '${m}分钟';
   }
 }
-
-final _todoStatsProvider = FutureProvider<Map<String, int>>((ref) async {
-  final repo = ref.watch(todoRepositoryProvider);
-  final total = await repo.getTotalCount();
-  final completed = await repo.getCompletedCount();
-  final today = await repo.getTodayDueCount();
-  return {'total': total, 'completed': completed, 'today': today};
-});
-
-final _habitStatsProvider = FutureProvider<Map<String, int>>((ref) async {
-  final repo = ref.watch(habitRepositoryProvider);
-  final total = await repo.getTotalHabitCount();
-  final today = await repo.getTodayCheckedCount();
-  return {'total': total, 'today': today};
-});

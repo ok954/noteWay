@@ -86,18 +86,32 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.sort, size: 18, color: Color(0xFF666666)),
-                      SizedBox(width: 4),
-                      Text('排序筛选', style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
-                    ],
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('排序筛选'),
+                        content: const Text('「排序筛选」功能正在开发中，敬请期待！'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.sort, size: 18, color: Color(0xFF666666)),
+                        SizedBox(width: 4),
+                        Text('排序筛选', style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
+                      ],
+                    ),
                   ),
                 ),
               ],

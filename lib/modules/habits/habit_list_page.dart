@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/checkin_record.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../repositories/habit_repository.dart';
 import '../../router.dart';
 
@@ -33,7 +34,18 @@ class HabitListPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert, color: Color(0xFF333333)),
-            onPressed: () {},
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('更多选项'),
+                  content: const Text('「更多选项」功能正在开发中，敬请期待！'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -57,7 +69,10 @@ class HabitListPage extends ConsumerWidget {
                   AppRoutes.timer,
                   arguments: habit.id,
                 ),
-                onDelete: () => ref.read(habitNotifierProvider.notifier).deleteHabit(habit.id),
+                onDelete: () async {
+                  await ref.read(habitNotifierProvider.notifier).deleteHabit(habit.id);
+                  ref.invalidate(habitStatsProvider);
+                },
               );
             },
           );
@@ -93,6 +108,7 @@ class HabitListPage extends ConsumerWidget {
       updatedAt: now,
     );
     await ref.read(habitNotifierProvider.notifier).updateHabit(updated);
+    ref.invalidate(habitStatsProvider);
   }
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/todo.dart';
+import '../../providers/stats_provider.dart';
 import '../../providers/todo_provider.dart';
 import '../../repositories/todo_repository.dart';
 
@@ -44,7 +45,18 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert, color: Color(0xFF333333)),
-            onPressed: () {},
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('更多选项'),
+                  content: const Text('「更多选项」功能正在开发中，敬请期待！'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -216,7 +228,10 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
             ...group.todos.map((todo) => _TodoItem(
               todo: todo,
               onToggle: () => _toggleWithDelay(todo),
-              onDelete: () => ref.read(todoNotifierProvider.notifier).deleteTodo(todo.id),
+              onDelete: () async {
+                await ref.read(todoNotifierProvider.notifier).deleteTodo(todo.id);
+                ref.invalidate(todoStatsProvider);
+              },
               onPin: () => _togglePin(todo),
             )),
           ],
@@ -230,7 +245,10 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
     final repo = ref.read(todoRepositoryProvider);
     await repo.updateTodo(updated);
     await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) ref.invalidate(todoNotifierProvider);
+    if (mounted) {
+      ref.invalidate(todoNotifierProvider);
+      ref.invalidate(todoStatsProvider);
+    }
   }
 
   Future<void> _togglePin(Todo todo) async {
@@ -238,6 +256,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
     final repo = ref.read(todoRepositoryProvider);
     await repo.updateTodo(updated);
     ref.invalidate(todoNotifierProvider);
+    ref.invalidate(todoStatsProvider);
   }
 
   void _showAddDialog(BuildContext context) {
@@ -587,6 +606,7 @@ class _TodoAddDialogState extends ConsumerState<_TodoAddDialog> {
         updatedAt: now,
       ),
     );
+    ref.invalidate(todoStatsProvider);
     if (_continuousAdd && mounted) {
       _titleController.clear();
       _contentController.clear();

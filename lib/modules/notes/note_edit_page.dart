@@ -21,8 +21,10 @@ class NoteEditPage extends ConsumerStatefulWidget {
 class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  final _contentFocusNode = FocusNode();
   String? _noteId;
   bool _isSaving = false;
+  final List<String> _imagePaths = [];
 
   @override
   void didChangeDependencies() {
@@ -41,11 +43,21 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       setState(() {
         _titleController.text = note.title ?? '';
         _contentController.text = _extractPlainText(note.content);
+        if (note.imagePaths != null && note.imagePaths!.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(note.imagePaths!);
+            if (decoded is List) {
+              _imagePaths.addAll(decoded.map((e) => e.toString()));
+            }
+          } catch (_) {
+            // 旧格式，尝试作为逗号分隔
+            _imagePaths.addAll(note.imagePaths!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+          }
+        }
       });
     }
   }
 
-  /// 从 Delta JSON 或纯文本中提取可读文本
   String _extractPlainText(String content) {
     try {
       final decoded = jsonDecode(content);
@@ -58,13 +70,10 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
         }
         return buffer.toString().trim();
       }
-    } catch (_) {
-      // 不是 JSON，直接返回
-    }
+    } catch (_) {}
     return content;
   }
 
-  /// 将纯文本转换为 Delta JSON 格式，保持与富文本编辑器数据兼容
   String _toDeltaJson(String plainText) {
     final text = plainText.trim();
     if (text.isEmpty) return jsonEncode([{'insert': '\n'}]);
@@ -75,6 +84,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
   }
 
@@ -91,7 +101,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
             ),
           IconButton(
             icon: const Icon(Icons.image),
-            onPressed: _insertImage,
+            onPressed: _showImagePicker,
           ),
           IconButton(
             icon: const Icon(Icons.check),
@@ -99,45 +109,162 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: '标题',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: '标题',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(),
+                  TextField(
+                    controller: _contentController,
+                    focusNode: _contentFocusNode,
+                    decoration: const InputDecoration(
+                      hintText: '开始写作...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(12),
+                    ),
+                    maxLines: null,
+                    minLines: 8,
+                    textAlignVertical: TextAlignVertical.top,
+                  ),
+                ],
               ),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const Divider(),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  hintText: '开始写作...',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
+          ),
+          // 图片预览区域
+          if (_imagePaths.isNotEmpty) ...[
+            const Divider(height: 1),
+            Container(
+              height: 100,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _imagePaths.length,
+                itemBuilder: (context, index) => _buildImageThumbnail(index),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageThumbnail(int index) {
+    final path = _imagePaths[index];
+    final file = File(path);
+    final exists = file.existsSync();
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: exists
+                ? Image.file(
+                    file,
+                    width: 84,
+                    height: 84,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                  )
+                : _buildImagePlaceholder(),
+          ),
+          Positioned(
+            top: 2,
+            right: 2,
+            child: GestureDetector(
+              onTap: () => _removeImage(index),
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      width: 84,
+      height: 84,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEEEEE),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.broken_image, color: Color(0xFFAAAAAA)),
+    );
+  }
+
+  void _showImagePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFF5B8DEF)),
+                title: const Text('从相册选择'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF34A853)),
+                title: const Text('拍照'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _insertImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-
+  Future<void> _pickImage(ImageSource source) async {
     try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 85);
+      if (picked == null) return;
+
       final appDir = await getApplicationDocumentsDirectory();
       final imageDir = Directory(p.join(appDir.path, 'images'));
       if (!await imageDir.exists()) {
@@ -147,15 +274,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
 
-      // 在光标位置插入图片标记
-      final text = _contentController.text;
-      final selection = _contentController.selection;
-      final before = text.substring(0, selection.baseOffset);
-      final after = text.substring(selection.extentOffset);
-      _contentController.text = '$before\n[图片: $fileName]\n$after';
-      _contentController.selection = TextSelection.collapsed(
-        offset: before.length + fileName.length + 10,
-      );
+      setState(() => _imagePaths.add(destPath));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,12 +290,36 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     }
   }
 
+  void _removeImage(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除图片'),
+        content: const Text('确定要删除这张图片吗？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              final path = _imagePaths[index];
+              try {
+                File(path).deleteSync();
+              } catch (_) {}
+              setState(() => _imagePaths.removeAt(index));
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveNote() async {
     if (_isSaving) return;
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
 
-    if (title.isEmpty && content.isEmpty) {
+    if (title.isEmpty && content.isEmpty && _imagePaths.isEmpty) {
       Navigator.pop(context);
       return;
     }
@@ -189,6 +332,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       title: title.isEmpty ? null : title,
       content: _toDeltaJson(content),
       plainText: content.isEmpty ? null : content,
+      imagePaths: _imagePaths.isEmpty ? null : jsonEncode(_imagePaths),
       createdAt: _noteId == null
           ? now
           : (await ref.read(noteRepositoryProvider).getNoteById(_noteId!))?.createdAt ?? now,
@@ -224,6 +368,12 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       ),
     );
     if (confirm == true) {
+      // 删除关联的图片文件
+      for (final path in _imagePaths) {
+        try {
+          File(path).deleteSync();
+        } catch (_) {}
+      }
       await ref.read(noteNotifierProvider.notifier).deleteNote(_noteId!);
       if (mounted) Navigator.pop(context);
     }
