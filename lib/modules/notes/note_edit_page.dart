@@ -109,65 +109,51 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      hintText: '标题',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    ),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const Divider(),
-                  TextField(
-                    controller: _contentController,
-                    focusNode: _contentFocusNode,
-                    decoration: const InputDecoration(
-                      hintText: '开始写作...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(12),
-                    ),
-                    maxLines: null,
-                    minLines: 8,
-                    textAlignVertical: TextAlignVertical.top,
-                  ),
-                ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                hintText: '标题',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ),
-          // 图片预览区域
-          if (_imagePaths.isNotEmpty) ...[
-            const Divider(height: 1),
-            Container(
-              height: 100,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _imagePaths.length,
-                itemBuilder: (context, index) => _buildImageThumbnail(index),
+            const Divider(),
+            TextField(
+              controller: _contentController,
+              focusNode: _contentFocusNode,
+              decoration: const InputDecoration(
+                hintText: '开始写作...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(12),
               ),
+              maxLines: null,
+              minLines: 6,
+              textAlignVertical: TextAlignVertical.top,
             ),
+            // 图片以行内缩略图展示（紧跟文字后面）
+            if (_imagePaths.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ...List.generate(_imagePaths.length, (index) => _buildInlineImage(index)),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildImageThumbnail(int index) {
+  Widget _buildInlineImage(int index) {
     final path = _imagePaths[index];
     final file = File(path);
     final exists = file.existsSync();
 
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Stack(
         children: [
           ClipRRect(
@@ -175,26 +161,25 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
             child: exists
                 ? Image.file(
                     file,
-                    width: 84,
-                    height: 84,
-                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
                   )
                 : _buildImagePlaceholder(),
           ),
           Positioned(
-            top: 2,
-            right: 2,
+            top: 8,
+            right: 8,
             child: GestureDetector(
               onTap: () => _removeImage(index),
               child: Container(
-                width: 20,
-                height: 20,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                child: const Icon(Icons.close, size: 16, color: Colors.white),
               ),
             ),
           ),
@@ -205,8 +190,8 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
 
   Widget _buildImagePlaceholder() {
     return Container(
-      width: 84,
-      height: 84,
+      width: double.infinity,
+      height: 100,
       decoration: BoxDecoration(
         color: const Color(0xFFEEEEEE),
         borderRadius: BorderRadius.circular(8),
