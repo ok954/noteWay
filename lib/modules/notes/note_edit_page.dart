@@ -274,18 +274,6 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
 
-      // 在光标位置插入图片标记
-      final text = _contentController.text;
-      final sel = _contentController.selection;
-      final offset = sel.isValid ? sel.baseOffset : text.length;
-      final before = text.substring(0, offset);
-      final after = text.substring(offset);
-      final marker = '\n[图片: $fileName]\n';
-      _contentController.text = before + marker + after;
-      _contentController.selection = TextSelection.collapsed(
-        offset: (before + marker).length,
-      );
-
       setState(() => _imagePaths.add(destPath));
 
       if (mounted) {
