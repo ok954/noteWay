@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../repositories/habit_repository.dart';
-import '../repositories/todo_repository.dart';
+import '../providers/habit_provider.dart';
+import '../providers/todo_provider.dart';
 
 /// 首页待办统计
 final todoStatsProvider = FutureProvider<Map<String, int>>((ref) async {
