@@ -146,6 +146,7 @@ class HabitListPage extends ConsumerWidget {
                 const Text('类型', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
+                  showSelectedIcon: false,
                   segments: const [
                     ButtonSegment(value: 'countdown', label: Text('倒计时')),
                     ButtonSegment(value: 'timer', label: Text('正向计时')),
@@ -158,29 +159,35 @@ class HabitListPage extends ConsumerWidget {
                     }
                   },
                 ),
-                if (habitType == 'countdown') ...[
-                  const SizedBox(height: 16),
-                  const Text('时长', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _buildDurationChip('10分钟', 10, planDuration, (v) => setState(() => planDuration = v)),
-                      _buildDurationChip('30分钟', 30, planDuration, (v) => setState(() => planDuration = v)),
-                      _buildDurationChip('60分钟', 60, planDuration, (v) => setState(() => planDuration = v)),
-                    ],
-                  ),
-                ],
-                if (habitType == 'timer')
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: Text('适合碎片时间记录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                  ),
-                if (habitType == 'count')
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: Text('适合不需要计时的打卡内容，比如吃药', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                  ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 60,
+                  child: switch (habitType) {
+                    'countdown' => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('时长', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              _buildDurationChip('10分钟', 10, planDuration, (v) => setState(() => planDuration = v)),
+                              _buildDurationChip('30分钟', 30, planDuration, (v) => setState(() => planDuration = v)),
+                              _buildDurationChip('60分钟', 60, planDuration, (v) => setState(() => planDuration = v)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    'timer' => const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('适合碎片时间记录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                      ),
+                    _ => const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('适合不需要计时的打卡内容，比如吃药', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                      ),
+                  },
+                ),
               ],
             ),
           ),
