@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,7 +103,7 @@ class SettingsPage extends ConsumerWidget {
             icon: Icons.download_outlined,
             iconColor: const Color(0xFF34A853),
             title: '导出数据',
-            trailingText: 'CSV格式',
+            trailingText: 'JSON格式',
             onTap: () => _exportData(context),
           ),
           _buildSettingItem(
@@ -326,31 +325,18 @@ class SettingsPage extends ConsumerWidget {
       final habits = await db.query('habits');
       final records = await db.query('checkin_records');
 
-      final List<List<dynamic>> csvData = [];
-      csvData.add(['==NOTES==']);
-      csvData.add(['id', 'title', 'content', 'plain_text', 'image_paths', 'created_at', 'updated_at']);
-      for (final row in notes) {
-        csvData.add([row['id'], row['title'], row['content'], row['plain_text'], row['image_paths'], row['created_at'], row['updated_at']]);
-      }
-      csvData.add(['==TODOS==']);
-      csvData.add(['id', 'title', 'content', 'type', 'due_date', 'priority', 'is_completed', 'is_pinned', 'created_at', 'updated_at']);
-      for (final row in todos) {
-        csvData.add([row['id'], row['title'], row['content'], row['type'], row['due_date'], row['priority'], row['is_completed'], row['is_pinned'], row['created_at'], row['updated_at']]);
-      }
-      csvData.add(['==HABITS==']);
-      csvData.add(['id', 'name', 'tag', 'habit_type', 'plan_duration', 'total_duration', 'today_duration', 'checkin_count', 'today_count', 'is_pinned', 'is_timing', 'current_record_id', 'last_checkin_at', 'created_at', 'updated_at']);
-      for (final row in habits) {
-        csvData.add([row['id'], row['name'], row['tag'], row['habit_type'], row['plan_duration'], row['total_duration'], row['today_duration'], row['checkin_count'], row['today_count'], row['is_pinned'], row['is_timing'], row['current_record_id'], row['last_checkin_at'], row['created_at'], row['updated_at']]);
-      }
-      csvData.add(['==CHECKIN_RECORDS==']);
-      csvData.add(['id', 'habit_id', 'record_type', 'start_time', 'end_time', 'duration', 'is_completed', 'created_at']);
-      for (final row in records) {
-        csvData.add([row['id'], row['habit_id'], row['record_type'], row['start_time'], row['end_time'], row['duration'], row['is_completed'], row['created_at']]);
-      }
+      final exportData = {
+        'version': 1,
+        'exported_at': DateTime.now().millisecondsSinceEpoch,
+        'notes': notes,
+        'todos': todos,
+        'habits': habits,
+        'checkin_records': records,
+      };
 
-      final csvString = const ListToCsvConverter().convert(csvData);
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
       final now = DateTime.now();
-      final fileName = 'noteWay_backup_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+      final fileName = 'noteWay_backup_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.json';
 
       String? outputPath;
       if (Platform.isAndroid) {
@@ -360,7 +346,7 @@ class SettingsPage extends ConsumerWidget {
       outputPath ??= p.join((await getApplicationDocumentsDirectory()).path, fileName);
 
       final file = File(outputPath);
-      await file.writeAsString(csvString);
+      await file.writeAsString(jsonString);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('数据已导出至: $outputPath')));
@@ -387,57 +373,27 @@ class SettingsPage extends ConsumerWidget {
     if (confirm != true) return;
 
     try {
-      final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+      final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
       if (result == null || result.files.single.path == null) return;
 
       final file = File(result.files.single.path!);
-      final csvString = await file.readAsString();
-      final csvData = const CsvToListConverter().convert(csvString);
+      final jsonString = await file.readAsString();
+      final data = jsonDecode(jsonString) as Map<String, dynamic>;
 
       final db = await DatabaseHelper().database;
-      String currentSection = '';
 
       await db.transaction((txn) async {
-        for (final row in csvData) {
-          if (row.isEmpty) continue;
-          final first = row[0].toString();
-          if (first.startsWith('==') && first.endsWith('==')) {
-            currentSection = first;
-            continue;
-          }
-          if (first == 'id') continue;
-
-          switch (currentSection) {
-            case '==NOTES==':
-              await _insertOrSkip(txn, 'notes', {
-                'id': row[0], 'title': row[1], 'content': row[2], 'plain_text': row[3],
-                'image_paths': row[4], 'created_at': row[5], 'updated_at': row[6],
-              });
-              break;
-            case '==TODOS==':
-              await _insertOrSkip(txn, 'todos', {
-                'id': row[0], 'title': row[1], 'content': row[2], 'type': row[3],
-                'due_date': row[4], 'priority': row[5], 'is_completed': row[6],
-                'is_pinned': row[7], 'created_at': row[8], 'updated_at': row[9],
-              });
-              break;
-            case '==HABITS==':
-              await _insertOrSkip(txn, 'habits', {
-                'id': row[0], 'name': row[1], 'tag': row[2], 'habit_type': row[3],
-                'plan_duration': row[4], 'total_duration': row[5], 'today_duration': row[6],
-                'checkin_count': row[7], 'today_count': row[8], 'is_pinned': row[9],
-                'is_timing': row[10], 'current_record_id': row[11], 'last_checkin_at': row[12],
-                'created_at': row[13], 'updated_at': row[14],
-              });
-              break;
-            case '==CHECKIN_RECORDS==':
-              await _insertOrSkip(txn, 'checkin_records', {
-                'id': row[0], 'habit_id': row[1], 'record_type': row[2],
-                'start_time': row[3], 'end_time': row[4], 'duration': row[5],
-                'is_completed': row[6], 'created_at': row[7],
-              });
-              break;
-          }
+        for (final row in (data['notes'] as List<dynamic>? ?? [])) {
+          await _insertOrSkip(txn, 'notes', _castMap(row));
+        }
+        for (final row in (data['todos'] as List<dynamic>? ?? [])) {
+          await _insertOrSkip(txn, 'todos', _castMap(row));
+        }
+        for (final row in (data['habits'] as List<dynamic>? ?? [])) {
+          await _insertOrSkip(txn, 'habits', _castMap(row));
+        }
+        for (final row in (data['checkin_records'] as List<dynamic>? ?? [])) {
+          await _insertOrSkip(txn, 'checkin_records', _castMap(row));
         }
       });
 
@@ -453,6 +409,17 @@ class SettingsPage extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导入失败: $e')));
       }
     }
+  }
+
+  Map<String, dynamic> _castMap(dynamic row) {
+    final map = row as Map<String, dynamic>;
+    // JSON decode 会将数字转为 int/double，确保与数据库兼容
+    return map.map((key, value) {
+      if (value is double && value == value.toInt().toDouble()) {
+        return MapEntry(key, value.toInt());
+      }
+      return MapEntry(key, value);
+    });
   }
 
   Future<void> _insertOrSkip(Transaction txn, String table, Map<String, dynamic> values) async {
