@@ -43,6 +43,9 @@ dependencies:
   # 网络
   http: ^1.2.0
 
+  # 字体
+  google_fonts: ^6.2.0
+
   # 工具
   path: ^1.8.0
   uuid: ^4.0.0
