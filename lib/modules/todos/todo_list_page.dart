@@ -420,108 +420,134 @@ class _TodoAddDialogState extends ConsumerState<_TodoAddDialog> {
   @override
   Widget build(BuildContext context) {
     final typesAsync = ref.watch(todoTypesProvider);
+    final mq = MediaQuery.of(context);
+    final isWide = mq.size.width > 600;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Row(
-        children: [
-          Text('新建待办', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          Spacer(),
-        ],
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isWide ? mq.size.width * 0.25 : 20,
+        vertical: 20,
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: '待办标题 *',
-                prefixIcon: Icon(Icons.title),
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(
-                hintText: '备注（可选）',
-                prefixIcon: Icon(Icons.notes),
-              ),
-              maxLines: 3,
-              minLines: 2,
-            ),
-            const SizedBox(height: 16),
-            const Text('优先级', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-            const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'high', label: Text('高')),
-                ButtonSegment(value: 'medium', label: Text('中')),
-                ButtonSegment(value: 'low', label: Text('低')),
-              ],
-              selected: {_priority},
-              onSelectionChanged: (selected) {
-                if (selected.isNotEmpty) setState(() => _priority = selected.first);
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('截止日期'),
-              subtitle: Text(
-                _dueDate != null
-                    ? '${_dueDate!.month}月${_dueDate!.day}日 ${_dueDate!.hour.toString().padLeft(2, '0')}:${_dueDate!.minute.toString().padLeft(2, '0')}'
-                    : '未设置',
-              ),
-              trailing: _dueDate != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () => setState(() => _dueDate = null),
-                    )
-                  : null,
-              onTap: _pickDueDate,
-            ),
-            typesAsync.when(
-              data: (types) {
-                if (types.isEmpty) return const SizedBox.shrink();
-                return DropdownButtonFormField<String?>(
-                  value: _selectedType,
+      title: const Text('新建待办', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: isWide ? 420 : 280),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSection(
+                label: '标题',
+                child: TextField(
+                  controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: '类型',
-                    prefixIcon: Icon(Icons.category),
+                    hintText: '待办标题 *',
+                    prefixIcon: Icon(Icons.title),
                   ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('无类型')),
-                    ...types.map((t) => DropdownMenuItem(value: t.name, child: Text(t.name))),
+                  autofocus: true,
+                ),
+              ),
+              _buildSection(
+                label: '备注',
+                child: TextField(
+                  controller: _contentController,
+                  decoration: const InputDecoration(
+                    hintText: '备注（可选）',
+                    prefixIcon: Icon(Icons.notes),
+                  ),
+                  maxLines: 3,
+                  minLines: 2,
+                ),
+              ),
+              _buildSection(
+                label: '优先级',
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 'high', label: Text('高')),
+                    ButtonSegment(value: 'medium', label: Text('中')),
+                    ButtonSegment(value: 'low', label: Text('低')),
                   ],
-                  onChanged: (value) => setState(() => _selectedType = value),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 4),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('置顶'),
-              value: _isPinned,
-              onChanged: (value) => setState(() => _isPinned = value ?? false),
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('连续添加模式'),
-              value: _continuousAdd,
-              onChanged: (value) => setState(() => _continuousAdd = value ?? false),
-            ),
-          ],
+                  selected: {_priority},
+                  onSelectionChanged: (selected) {
+                    if (selected.isNotEmpty) setState(() => _priority = selected.first);
+                  },
+                ),
+              ),
+              _buildSection(
+                label: '截止日期',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(
+                    _dueDate != null
+                        ? '${_dueDate!.month}月${_dueDate!.day}日 ${_dueDate!.hour.toString().padLeft(2, '0')}:${_dueDate!.minute.toString().padLeft(2, '0')}'
+                        : '未设置',
+                  ),
+                  trailing: _dueDate != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _dueDate = null),
+                        )
+                      : null,
+                  onTap: _pickDueDate,
+                ),
+              ),
+              _buildSection(
+                label: '类型',
+                child: typesAsync.when(
+                  data: (types) {
+                    if (types.isEmpty) return const SizedBox.shrink();
+                    return DropdownButtonFormField<String?>(
+                      value: _selectedType,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      hint: const Text('选择类型'),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('无类型')),
+                        ...types.map((t) => DropdownMenuItem(value: t.name, child: Text(t.name))),
+                      ],
+                      onChanged: (value) => setState(() => _selectedType = value),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('置顶'),
+                value: _isPinned,
+                onChanged: (value) => setState(() => _isPinned = value ?? false),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('连续添加模式'),
+                value: _continuousAdd,
+                onChanged: (value) => setState(() => _continuousAdd = value ?? false),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
         TextButton(onPressed: _addTodo, child: const Text('添加')),
+      ],
+    );
+  }
+
+  Widget _buildSection({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+        const SizedBox(height: 8),
+        child,
       ],
     );
   }

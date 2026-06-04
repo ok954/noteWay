@@ -101,94 +101,104 @@ class HabitListPage extends ConsumerWidget {
     int? planDuration;
     String? selectedTag;
 
+    final mq = MediaQuery.of(context);
+    final isWide = mq.size.width > 600;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isWide ? mq.size.width * 0.25 : 20,
+            vertical: 20,
+          ),
           title: const Text('新建打卡', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    hintText: '输入打卡内容',
-                    prefixIcon: Icon(Icons.edit),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: isWide ? 420 : 280),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      hintText: '输入打卡内容',
+                      prefixIcon: Icon(Icons.edit),
+                    ),
+                    autofocus: true,
                   ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                const Text('标签', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ['健康', '学习', '习惯'].map((tag) {
-                    final isSelected = selectedTag == tag;
-                    return ChoiceChip(
-                      label: Text(tag),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() => selectedTag = selected ? tag : null);
-                      },
-                      selectedColor: const Color(0xFFE6F4EA),
-                      backgroundColor: const Color(0xFFF5F5F5),
-                      labelStyle: TextStyle(
-                        color: isSelected ? const Color(0xFF34A853) : const Color(0xFF666666),
-                        fontSize: 13,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                const Text('类型', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'countdown', label: Text('倒计时')),
-                    ButtonSegment(value: 'timer', label: Text('正向计时')),
-                    ButtonSegment(value: 'count', label: Text('不计时')),
-                  ],
-                  selected: {habitType},
-                  onSelectionChanged: (selected) {
-                    if (selected.isNotEmpty) {
-                      setState(() => habitType = selected.first);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 60,
-                  child: switch (habitType) {
-                    'countdown' => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('时长', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              _buildDurationChip('10分钟', 10, planDuration, (v) => setState(() => planDuration = v)),
-                              _buildDurationChip('30分钟', 30, planDuration, (v) => setState(() => planDuration = v)),
-                              _buildDurationChip('60分钟', 60, planDuration, (v) => setState(() => planDuration = v)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    'timer' => const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('适合碎片时间记录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                      ),
-                    _ => const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('适合不需要计时的打卡内容，比如吃药', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-                      ),
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  const Text('标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['健康', '学习', '习惯'].map((tag) {
+                      final isSelected = selectedTag == tag;
+                      return ChoiceChip(
+                        label: Text(tag),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() => selectedTag = selected ? tag : null);
+                        },
+                        selectedColor: const Color(0xFFE6F4EA),
+                        backgroundColor: const Color(0xFFF5F5F5),
+                        labelStyle: TextStyle(
+                          color: isSelected ? const Color(0xFF34A853) : const Color(0xFF666666),
+                          fontSize: 13,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('类型', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(value: 'countdown', label: Text('倒计时')),
+                      ButtonSegment(value: 'timer', label: Text('正向计时')),
+                      ButtonSegment(value: 'count', label: Text('不计时')),
+                    ],
+                    selected: {habitType},
+                    onSelectionChanged: (selected) {
+                      if (selected.isNotEmpty) {
+                        setState(() => habitType = selected.first);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 60,
+                    child: switch (habitType) {
+                      'countdown' => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('时长', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                _buildDurationChip('10分钟', 10, planDuration, (v) => setState(() => planDuration = v)),
+                                _buildDurationChip('30分钟', 30, planDuration, (v) => setState(() => planDuration = v)),
+                                _buildDurationChip('60分钟', 60, planDuration, (v) => setState(() => planDuration = v)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      'timer' => const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('适合碎片时间记录', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                        ),
+                      _ => const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('适合不需要计时的打卡内容，比如吃药', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                        ),
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
