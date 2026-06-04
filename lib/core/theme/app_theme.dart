@@ -184,10 +184,10 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
-        selectedStyle: TextStyle(color: cs.onSurface),
         style: SegmentedButton.styleFrom(
           backgroundColor: const Color(0xFF2A2A2A),
           selectedBackgroundColor: cs.primaryContainer,
+          foregroundColor: cs.onSurface,
         ),
       ),
     );

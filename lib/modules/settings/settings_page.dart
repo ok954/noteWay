@@ -212,7 +212,7 @@ class SettingsPage extends ConsumerWidget {
             children: [
               Icon(icon, size: 22, color: iconColor),
               const SizedBox(width: 12),
-              Expanded(child: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface))),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 15))),
               if (trailingText != null && trailingText.isNotEmpty)
                 Text(trailingText, style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
               if (showArrow) const SizedBox(width: 4),
