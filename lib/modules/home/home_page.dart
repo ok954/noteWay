@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/constants/app_colors.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/note_provider.dart';
@@ -17,23 +16,15 @@ class HomePage extends ConsumerWidget {
     final habitStats = ref.watch(habitStatsProvider);
     final habitsAsync = ref.watch(habitNotifierProvider);
     final notesAsync = ref.watch(noteNotifierProvider);
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
-        elevation: 0,
-        title: const Text(
-          '记途',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
-          ),
-        ),
+        title: const Text('记途'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF666666)),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
         ],
@@ -42,27 +33,28 @@ class HomePage extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 待办卡片
-            _buildTodoCard(context, todoStats),
+            _buildTodoCard(context, todoStats, cs),
             const SizedBox(height: 12),
-            // 打卡卡片
-            _buildHabitCard(context, habitStats, habitsAsync),
+            _buildHabitCard(context, habitStats, habitsAsync, cs),
             const SizedBox(height: 12),
-            // 笔记卡片
-            _buildNoteCard(context, notesAsync),
+            _buildNoteCard(context, notesAsync, cs),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showQuickAddSheet(context),
-        backgroundColor: AppColors.primary,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
+      floatingActionButton: _buildFAB(context, cs),
     );
   }
 
-  Widget _buildTodoCard(BuildContext context, AsyncValue<Map<String, int>> todoStats) {
+  Widget _buildFAB(BuildContext context, ColorScheme cs) {
+    return FloatingActionButton(
+      onPressed: () => _showQuickAddSheet(context),
+      backgroundColor: cs.primary,
+      shape: const CircleBorder(),
+      child: Icon(Icons.add, color: cs.onPrimary, size: 28),
+    );
+  }
+
+  Widget _buildTodoCard(BuildContext context, AsyncValue<Map<String, int>> todoStats, ColorScheme cs) {
     return _buildModuleCard(
       context,
       icon: Icons.check_circle_outline,
@@ -89,6 +81,7 @@ class HomePage extends ConsumerWidget {
     BuildContext context,
     AsyncValue<Map<String, int>> habitStats,
     AsyncValue<List<Habit>> habitsAsync,
+    ColorScheme cs,
   ) {
     return _buildModuleCard(
       context,
@@ -108,16 +101,16 @@ class HomePage extends ConsumerWidget {
                     children: [
                       const Icon(Icons.check_circle, size: 14, color: Color(0xFF34A853)),
                       const SizedBox(width: 4),
-                      Text('今日已打卡 ${s['today'] ?? 0} 项', style: const TextStyle(fontSize: 13, color: Color(0xFF34A853))),
+                      Text('今日已打卡 ${s['today'] ?? 0} 项', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Row(
                     children: [
-                      const Icon(Icons.circle_outlined, size: 14, color: Color(0xFF999999)),
+                      const Icon(Icons.circle_outlined, size: 14),
                       const SizedBox(width: 4),
-                      Text('今日未打卡 ${(s['total'] ?? 0) - (s['today'] ?? 0)} 项', style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                      Text('今日未打卡 ${(s['total'] ?? 0) - (s['today'] ?? 0)} 项', style: TextStyle(fontSize: 13, color: cs.outline)),
                     ],
                   ),
                 ),
@@ -127,16 +120,16 @@ class HomePage extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          Divider(color: cs.outlineVariant, height: 1),
           const SizedBox(height: 8),
           habitsAsync.when(
             data: (habits) {
               final previewHabits = habits.take(4).toList();
               if (previewHabits.isEmpty) {
-                return const Text('暂无打卡项', style: TextStyle(fontSize: 13, color: AppColors.textHint));
+                return Text('暂无打卡项', style: TextStyle(fontSize: 13, color: cs.outline));
               }
               return Column(
-                children: previewHabits.map((h) => _buildHabitPreviewItem(h)).toList(),
+                children: previewHabits.map((h) => _buildHabitPreviewItem(h, cs)).toList(),
               );
             },
             loading: () => const SizedBox.shrink(),
@@ -147,7 +140,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildHabitPreviewItem(Habit habit) {
+  Widget _buildHabitPreviewItem(Habit habit, ColorScheme cs) {
     final isCompleted = habit.todayCount > 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -157,13 +150,13 @@ class HomePage extends ConsumerWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: isCompleted ? const Color(0xFFE6F4EA) : const Color(0xFFF5F5F5),
+              color: isCompleted ? const Color(0xFFE6F4EA) : cs.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
               _habitIcon(habit.name),
               size: 16,
-              color: isCompleted ? const Color(0xFF34A853) : const Color(0xFF999999),
+              color: isCompleted ? const Color(0xFF34A853) : cs.outline,
             ),
           ),
           const SizedBox(width: 10),
@@ -172,25 +165,25 @@ class HomePage extends ConsumerWidget {
               habit.name,
               style: TextStyle(
                 fontSize: 13,
-                color: isCompleted ? const Color(0xFF999999) : const Color(0xFF333333),
+                color: isCompleted ? cs.outline : cs.onSurface,
                 decoration: isCompleted ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
           if (isCompleted) ...[
-            const Icon(Icons.check, size: 14, color: Color(0xFF34A853)),
+            Icon(Icons.check, size: 14, color: cs.onSurfaceVariant),
             const SizedBox(width: 4),
             if (habit.habitType != 'count')
               Text(
                 _formatDuration(habit.todayDuration),
-                style: const TextStyle(fontSize: 12, color: Color(0xFF34A853)),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
           ] else
             Container(
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFDDDDDD)),
+                border: Border.all(color: cs.outlineVariant),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -199,7 +192,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoteCard(BuildContext context, AsyncValue<List<dynamic>> notesAsync) {
+  Widget _buildNoteCard(BuildContext context, AsyncValue<List<dynamic>> notesAsync, ColorScheme cs) {
     return _buildModuleCard(
       context,
       icon: Icons.note_outlined,
@@ -210,7 +203,7 @@ class HomePage extends ConsumerWidget {
       child: notesAsync.when(
         data: (notes) {
           if (notes.isEmpty) {
-            return const Text('暂无笔记，点击添加第一条笔记', style: TextStyle(fontSize: 13, color: AppColors.textHint));
+            return Text('暂无笔记，点击添加第一条笔记', style: TextStyle(fontSize: 13, color: cs.outline));
           }
           final latest = notes.first;
           final dt = DateTime.fromMillisecondsSinceEpoch(latest.updatedAt);
@@ -219,12 +212,12 @@ class HomePage extends ConsumerWidget {
             children: [
               Text(
                 '上一次编辑：${dt.month}月${dt.day}日 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
               const SizedBox(height: 8),
               Text(
                 latest.title ?? latest.plainText ?? '无标题笔记',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF333333)),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: cs.onSurface),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -232,7 +225,7 @@ class HomePage extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   latest.plainText!,
-                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -256,8 +249,6 @@ class HomePage extends ConsumerWidget {
     required Widget child,
   }) {
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -279,15 +270,15 @@ class HomePage extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
-                  const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
+                  Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.outline, size: 20),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
               ),
               child,
             ],
@@ -311,10 +302,7 @@ class HomePage extends ConsumerWidget {
           Expanded(
             child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
           ),
-          Text(
-            value,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: valueColor),
-          ),
+          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: valueColor)),
         ],
       ),
     );
@@ -323,9 +311,6 @@ class HomePage extends ConsumerWidget {
   void _showQuickAddSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -336,7 +321,7 @@ class HomePage extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -387,7 +372,7 @@ class HomePage extends ConsumerWidget {
         decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: color),
       ),
-      title: Text(title, style: const TextStyle(fontSize: 15)),
+      title: Text(title),
       onTap: onTap,
     );
   }

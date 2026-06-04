@@ -36,15 +36,15 @@ class SettingsPage extends ConsumerWidget {
     final username = authState.value?.user?.username ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('设置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF333333))),
+        title: const Text('设置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         centerTitle: true,
       ),
       body: ListView(
@@ -212,7 +212,7 @@ class SettingsPage extends ConsumerWidget {
             children: [
               Icon(icon, size: 22, color: iconColor),
               const SizedBox(width: 12),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 15, color: Color(0xFF333333)))),
+              Expanded(child: Text(title, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface))),
               if (trailingText != null && trailingText.isNotEmpty)
                 Text(trailingText, style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
               if (showArrow) const SizedBox(width: 4),

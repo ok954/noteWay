@@ -31,22 +31,22 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
     final notesAsync = ref.watch(noteNotifierProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           '笔记列表',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF666666)),
+            icon: const Icon(Icons.settings_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
         ],
@@ -107,9 +107,9 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.sort, size: 18, color: Color(0xFF666666)),
+                        Icon(Icons.sort, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         SizedBox(width: 4),
-                        Text('排序筛选', style: TextStyle(fontSize: 13, color: Color(0xFF666666))),
+                        Text('排序筛选', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -200,10 +200,10 @@ class _NoteCard extends StatelessWidget {
                   if (note.title != null && note.title!.isNotEmpty)
                     Text(
                       note.title!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF333333),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -212,7 +212,7 @@ class _NoteCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       note.plainText!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF666666), height: 1.4),
+                      style: const TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),

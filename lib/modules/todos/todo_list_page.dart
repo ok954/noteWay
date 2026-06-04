@@ -32,19 +32,19 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
     final typesAsync = ref.watch(todoTypesProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('待办事项', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF333333))),
+        title: const Text('待办事项', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF333333)),
+            icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () {
               showDialog(
                 context: context,
@@ -208,7 +208,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
                 children: [
                   Text(
                     group.title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                   ),
                   const SizedBox(width: 6),
                   Container(
@@ -326,7 +326,7 @@ class _TodoItem extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                        color: todo.isCompleted ? const Color(0xFFAAAAAA) : const Color(0xFF333333),
+                        color: todo.isCompleted ? Theme.of(context).colorScheme.outline : const Color(0xFF333333),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -340,10 +340,10 @@ class _TodoItem extends StatelessWidget {
                             _formatDate(todo.dueDate!),
                             _isOverdue(todo.dueDate!) && !todo.isCompleted
                                 ? const Color(0xFFFFEBEE)
-                                : const Color(0xFFF5F5F5),
+                                : Theme.of(context).colorScheme.surfaceContainerHighest,
                             _isOverdue(todo.dueDate!) && !todo.isCompleted
                                 ? const Color(0xFFEA4335)
-                                : const Color(0xFF666666),
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         _buildPriorityTag(todo.priority),
                       ],
