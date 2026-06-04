@@ -391,7 +391,7 @@ class _HabitItem extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
-                    isCompletedToday ? '已完成' : (habit.habitType == 'count' ? '完成' : '开始'),
+                    _buttonLabel(habit),
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -437,6 +437,13 @@ class _HabitItem extends StatelessWidget {
     if (n.contains('琴') || n.contains('吉他')) return Icons.music_note;
     if (n.contains('写')) return Icons.edit;
     return Icons.star;
+  }
+
+  String _buttonLabel(Habit habit) {
+    if (habit.todayCount > 0) return '已完成';
+    if (habit.habitType == 'count') return '完成';
+    if (habit.currentRecordId != null) return '继续';
+    return '开始';
   }
 
   String _formatDuration(int seconds) {

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../providers/note_provider.dart';
 import '../../router.dart';
 
@@ -33,27 +32,21 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          '笔记列表',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
+        title: const Text('笔记列表'),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            icon: Icon(Icons.settings_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
         ],
       ),
       body: Column(
         children: [
-          // 搜索栏
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -63,18 +56,10 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: '搜索笔记',
-                      hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFBBBBBB)),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFFBBBBBB)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
+                      prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18, color: Color(0xFFBBBBBB)),
+                              icon: const Icon(Icons.clear, size: 18),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _searchQuery = '');
@@ -102,13 +87,13 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.sort, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text('排序筛选', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
@@ -117,7 +102,6 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
               ],
             ),
           ),
-          // 笔记列表
           Expanded(
             child: notesAsync.when(
               data: (notes) {
@@ -131,8 +115,8 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                   }).toList();
                 }
                 if (filtered.isEmpty) {
-                  return const Center(
-                    child: Text('暂无笔记，点击右下角添加', style: TextStyle(color: Color(0xFF999999))),
+                  return Center(
+                    child: Text('暂无笔记，点击右下角添加', style: TextStyle(color: Theme.of(context).colorScheme.outline)),
                   );
                 }
                 return MasonryGridView.count(
@@ -172,8 +156,8 @@ class _NoteCard extends StatelessWidget {
     final dt = DateTime.fromMillisecondsSinceEpoch(note.updatedAt);
     final timeStr = '${dt.month}月${dt.day}日 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-    // 尝试提取图片路径
-    final imagePath = _extractFirstImage(note.content);
+    // 从 imagePaths 字段提取第一张图片作为封面
+    final coverImage = _getFirstImage(note.imagePaths);
 
     return Card(
       elevation: 0,
@@ -184,9 +168,9 @@ class _NoteCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (imagePath != null && File(imagePath).existsSync())
+            if (coverImage != null && File(coverImage).existsSync())
               Image.file(
-                File(imagePath),
+                File(coverImage),
                 width: double.infinity,
                 height: 120,
                 fit: BoxFit.cover,
@@ -212,7 +196,7 @@ class _NoteCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       note.plainText!,
-                      style: const TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -231,20 +215,16 @@ class _NoteCard extends StatelessWidget {
     );
   }
 
-  String? _extractFirstImage(String content) {
+  String? _getFirstImage(String? imagePaths) {
+    if (imagePaths == null || imagePaths.isEmpty) return null;
     try {
-      final decoded = jsonDecode(content);
-      if (decoded is List) {
-        for (final op in decoded) {
-          if (op is Map && op['insert'] is Map) {
-            final insert = op['insert'] as Map;
-            if (insert.containsKey('image')) {
-              return insert['image'] as String?;
-            }
-          }
-        }
+      final decoded = jsonDecode(imagePaths);
+      if (decoded is List && decoded.isNotEmpty) {
+        return decoded.first as String?;
       }
-    } catch (_) {}
+    } catch (_) {
+      return imagePaths.split(',').first.trim();
+    }
     return null;
   }
 }

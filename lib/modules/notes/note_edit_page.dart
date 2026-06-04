@@ -122,7 +122,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
                     decoration: const InputDecoration(
                       hintText: '标题',
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     ),
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -273,6 +273,18 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final fileName = '${const Uuid().v4()}${p.extension(picked.path)}';
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
+
+      // 在光标位置插入图片标记
+      final text = _contentController.text;
+      final sel = _contentController.selection;
+      final offset = sel.isValid ? sel.baseOffset : text.length;
+      final before = text.substring(0, offset);
+      final after = text.substring(offset);
+      final marker = '\n[图片: $fileName]\n';
+      _contentController.text = before + marker + after;
+      _contentController.selection = TextSelection.collapsed(
+        offset: (before + marker).length,
+      );
 
       setState(() => _imagePaths.add(destPath));
 
