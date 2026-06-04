@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -20,11 +21,17 @@ class NoteEditPage extends ConsumerStatefulWidget {
 
 class _NoteEditPageState extends ConsumerState<NoteEditPage> {
   final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  final _contentFocusNode = FocusNode();
+  late final QuillController _quillController;
+  final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   String? _noteId;
   bool _isSaving = false;
-  final List<String> _imagePaths = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _quillController = QuillController.basic();
+  }
 
   @override
   void didChangeDependencies() {
@@ -42,49 +49,31 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     if (note != null && mounted) {
       setState(() {
         _titleController.text = note.title ?? '';
-        _contentController.text = _extractPlainText(note.content);
-        if (note.imagePaths != null && note.imagePaths!.isNotEmpty) {
-          try {
-            final decoded = jsonDecode(note.imagePaths!);
-            if (decoded is List) {
-              _imagePaths.addAll(decoded.map((e) => e.toString()));
-            }
-          } catch (_) {
-            // 旧格式，尝试作为逗号分隔
-            _imagePaths.addAll(note.imagePaths!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
-          }
-        }
       });
+      _loadContent(note.content);
     }
   }
 
-  String _extractPlainText(String content) {
+  void _loadContent(String content) {
     try {
       final decoded = jsonDecode(content);
       if (decoded is List) {
-        final buffer = StringBuffer();
-        for (final op in decoded) {
-          if (op is Map && op['insert'] is String) {
-            buffer.write(op['insert']);
-          }
-        }
-        return buffer.toString().trim();
+        _quillController.document = Document.fromJson(decoded);
+        return;
       }
     } catch (_) {}
-    return content;
-  }
-
-  String _toDeltaJson(String plainText) {
-    final text = plainText.trim();
-    if (text.isEmpty) return jsonEncode([{'insert': '\n'}]);
-    return jsonEncode([{'insert': '$text\n'}]);
+    // 旧数据：纯文本，插入为空
+    if (content.trim().isNotEmpty) {
+      _quillController.document.insert(0, content);
+    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _contentController.dispose();
-    _contentFocusNode.dispose();
+    _quillController.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -101,7 +90,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
             ),
           IconButton(
             icon: const Icon(Icons.image),
-            onPressed: _showImagePicker,
+            onPressed: _insertImage,
           ),
           IconButton(
             icon: const Icon(Icons.check),
@@ -109,12 +98,12 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
+      body: Column(
+        children: [
+          // 标题
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 hintText: '标题',
@@ -123,63 +112,48 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
               ),
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const Divider(),
-            TextField(
-              controller: _contentController,
-              focusNode: _contentFocusNode,
-              decoration: const InputDecoration(
-                hintText: '开始写作...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(12),
-              ),
-              maxLines: null,
-              minLines: 6,
-              textAlignVertical: TextAlignVertical.top,
-            ),
-            // 图片以行内缩略图展示（紧跟文字后面）
-            if (_imagePaths.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ...List.generate(_imagePaths.length, (index) => _buildInlineImage(index)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInlineImage(int index) {
-    final path = _imagePaths[index];
-    final file = File(path);
-    final exists = file.existsSync();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: exists
-                ? Image.file(
-                    file,
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-                  )
-                : _buildImagePlaceholder(),
           ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: GestureDetector(
-              onTap: () => _removeImage(index),
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.close, size: 16, color: Colors.white),
+          const Divider(),
+          // 工具栏
+          QuillSimpleToolbar(
+            controller: _quillController,
+            config: const QuillSimpleToolbarConfig(
+              showFontFamily: false,
+              showFontSize: false,
+              showColorButton: false,
+              showBackgroundColorButton: false,
+              showClearFormat: false,
+              showHeaderStyle: false,
+              showListCheck: false,
+              showCodeBlock: false,
+              showSubscript: false,
+              showSuperscript: false,
+              showDirection: false,
+              showSearchButton: false,
+              showRedo: false,
+              showUndo: false,
+              showQuote: false,
+              showIndent: false,
+              showLink: false,
+              showStrikeThrough: false,
+              showInlineCode: false,
+              showSmallButton: false,
+              showLineHeightButton: false,
+              multiRowsDisplay: true,
+              showDividers: false,
+              toolbarSectionSpacing: 8,
+            ),
+          ),
+          const Divider(height: 1),
+          // 编辑器
+          Expanded(
+            child: QuillEditor(
+              controller: _quillController,
+              scrollController: _scrollController,
+              focusNode: _focusNode,
+              config: const QuillEditorConfig(
+                placeholder: '开始写作...',
+                padding: EdgeInsets.all(16),
               ),
             ),
           ),
@@ -188,68 +162,12 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     );
   }
 
-  Widget _buildImagePlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: 100,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEEEEE),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Icon(Icons.broken_image, color: Color(0xFFAAAAAA)),
-    );
-  }
+  Future<void> _insertImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null) return;
 
-  void _showImagePicker() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.photo_library, color: Color(0xFF5B8DEF)),
-                title: const Text('从相册选择'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Color(0xFF34A853)),
-                title: const Text('拍照'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
-      if (picked == null) return;
-
       final appDir = await getApplicationDocumentsDirectory();
       final imageDir = Directory(p.join(appDir.path, 'images'));
       if (!await imageDir.exists()) {
@@ -259,7 +177,14 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       final destPath = p.join(imageDir.path, fileName);
       await File(picked.path).copy(destPath);
 
-      setState(() => _imagePaths.add(destPath));
+      // 在光标位置插入图片
+      final index = _quillController.selection.baseOffset;
+      _quillController.replaceText(
+        index,
+        0,
+        BlockEmbed.image(destPath),
+        TextSelection.collapsed(offset: index + 1),
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -275,36 +200,14 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     }
   }
 
-  void _removeImage(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除图片'),
-        content: const Text('确定要删除这张图片吗？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              final path = _imagePaths[index];
-              try {
-                File(path).deleteSync();
-              } catch (_) {}
-              setState(() => _imagePaths.removeAt(index));
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _saveNote() async {
     if (_isSaving) return;
     final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
+    final delta = _quillController.document.toDelta();
+    final contentJson = jsonEncode(delta.toJson());
+    final plainText = _quillController.document.toPlainText().trim();
 
-    if (title.isEmpty && content.isEmpty && _imagePaths.isEmpty) {
+    if (title.isEmpty && plainText.isEmpty) {
       Navigator.pop(context);
       return;
     }
@@ -312,12 +215,32 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     setState(() => _isSaving = true);
 
     final now = DateTime.now().millisecondsSinceEpoch;
+    // 保存时提取第一张图片路径作为封面
+    String? imagePaths;
+    try {
+      final paths = <String>[];
+      for (final op in delta.toJson()) {
+        if (op is Map && op['insert'] is Map) {
+          final insert = op['insert'] as Map;
+          if (insert.containsKey('image')) {
+            final path = insert['image'] as String?;
+            if (path != null && path.isNotEmpty) {
+              paths.add(path);
+            }
+          }
+        }
+      }
+      if (paths.isNotEmpty) {
+        imagePaths = jsonEncode(paths);
+      }
+    } catch (_) {}
+
     final note = Note(
       id: _noteId ?? const Uuid().v4(),
       title: title.isEmpty ? null : title,
-      content: _toDeltaJson(content),
-      plainText: content.isEmpty ? null : content,
-      imagePaths: _imagePaths.isEmpty ? null : jsonEncode(_imagePaths),
+      content: contentJson,
+      plainText: plainText.isEmpty ? null : plainText,
+      imagePaths: imagePaths,
       createdAt: _noteId == null
           ? now
           : (await ref.read(noteRepositoryProvider).getNoteById(_noteId!))?.createdAt ?? now,
@@ -353,12 +276,6 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
       ),
     );
     if (confirm == true) {
-      // 删除关联的图片文件
-      for (final path in _imagePaths) {
-        try {
-          File(path).deleteSync();
-        } catch (_) {}
-      }
       await ref.read(noteNotifierProvider.notifier).deleteNote(_noteId!);
       if (mounted) Navigator.pop(context);
     }
