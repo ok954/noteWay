@@ -442,7 +442,11 @@ class _HabitItem extends StatelessWidget {
   String _formatDuration(int seconds) {
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
-    if (h > 0) return '${h}小时${m}分';
-    return '${m}分钟';
+    final s = seconds % 60;
+    final parts = <String>[];
+    if (h > 0) parts.add('${h}小时');
+    if (m > 0) parts.add('${m}分');
+    parts.add('${s}秒');
+    return parts.join('');
   }
 }
