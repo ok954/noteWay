@@ -13,12 +13,13 @@ class MemoApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final fontId = ref.watch(fontIdProvider);
+    final fontSize = ref.watch(fontSizeProvider);
 
     return MaterialApp(
       title: '记途',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(fontId),
-      darkTheme: AppTheme.darkTheme(fontId),
+      theme: AppTheme.lightTheme(fontId, fontSize),
+      darkTheme: AppTheme.darkTheme(fontId, fontSize),
       themeMode: themeMode,
       locale: const Locale('zh', 'CN'),
       localizationsDelegates: const [
@@ -30,7 +31,7 @@ class MemoApp extends ConsumerWidget {
         Locale('zh', 'CN'),
         Locale('en', 'US'),
       ],
-      initialRoute: AppRoutes.home,
+      initialRoute: ref.watch(appLockProvider).enabled ? AppRoutes.lock : AppRoutes.home,
       routes: AppRoutes.routes,
       builder: (context, child) {
         final mq = MediaQuery.of(context);

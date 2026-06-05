@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/constants/app_colors.dart';
+import '../../core/utils/helpers.dart';
 import '../../models/checkin_record.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/stats_provider.dart';
-import '../../repositories/habit_repository.dart';
 import '../../router.dart';
 
 class HabitListPage extends ConsumerWidget {
@@ -100,14 +99,14 @@ class HabitListPage extends ConsumerWidget {
       isCompleted: true,
       createdAt: now,
     );
-    await ref.read(habitRepositoryProvider).insertCheckinRecord(record);
     final updated = habit.copyWith(
       todayCount: habit.todayCount + 1,
       checkinCount: habit.checkinCount + 1,
       lastCheckinAt: now,
       updatedAt: now,
     );
-    await ref.read(habitNotifierProvider.notifier).updateHabit(updated);
+    await ref.read(habitRepositoryProvider).checkinWithRecord(record, updated);
+    ref.invalidate(habitNotifierProvider);
     ref.invalidate(habitStatsProvider);
   }
 
@@ -287,8 +286,8 @@ class _HabitItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCompletedToday = habit.todayCount > 0;
-    final typeLabel = _getTypeLabel(habit.habitType);
-    final typeColor = _getTypeColor(habit.habitType);
+    final typeLabel = getHabitTypeLabel(habit.habitType);
+    final typeColor = getHabitTypeColor(habit.habitType);
 
     return Dismissible(
       key: Key(habit.id),
@@ -317,7 +316,7 @@ class _HabitItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  _habitIcon(habit.name),
+                  habitIcon(habit.name),
                   color: typeColor,
                   size: 24,
                 ),
@@ -357,7 +356,7 @@ class _HabitItem extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (habit.habitType != 'count')
                       Text(
-                        '累计时长: ${_formatDuration(habit.totalDuration)}',
+                        '累计时长: ${formatDuration(habit.totalDuration)}',
                         style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
                       )
                     else
@@ -402,43 +401,6 @@ class _HabitItem extends StatelessWidget {
     );
   }
 
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'countdown':
-        return '倒计时';
-      case 'timer':
-        return '正向计时';
-      case 'count':
-        return '不计时';
-      default:
-        return '不计时';
-    }
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type) {
-      case 'countdown':
-        return const Color(0xFFEA4335);
-      case 'timer':
-        return const Color(0xFF5B8DEF);
-      case 'count':
-        return const Color(0xFF34A853);
-      default:
-        return const Color(0xFF34A853);
-    }
-  }
-
-  IconData _habitIcon(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('书') || n.contains('读')) return Icons.menu_book;
-    if (n.contains('跑') || n.contains('步') || n.contains('运动')) return Icons.directions_run;
-    if (n.contains('水')) return Icons.local_drink;
-    if (n.contains('想') || n.contains('冥想')) return Icons.self_improvement;
-    if (n.contains('琴') || n.contains('吉他')) return Icons.music_note;
-    if (n.contains('写')) return Icons.edit;
-    return Icons.star;
-  }
-
   String _buttonLabel(Habit habit) {
     if (habit.todayCount > 0) return '已完成';
     if (habit.habitType == 'count') return '完成';
@@ -446,14 +408,4 @@ class _HabitItem extends StatelessWidget {
     return '开始';
   }
 
-  String _formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    final parts = <String>[];
-    if (h > 0) parts.add('${h}小时');
-    if (m > 0) parts.add('${m}分');
-    parts.add('${s}秒');
-    return parts.join('');
-  }
 }

@@ -6,7 +6,6 @@ import '../../core/constants/app_colors.dart';
 import '../../models/todo.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/todo_provider.dart';
-import '../../repositories/todo_repository.dart';
 
 class TodoListPage extends ConsumerStatefulWidget {
   const TodoListPage({super.key});
@@ -19,6 +18,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
   String? _selectedType;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  String _sortMode = 'default';
 
   @override
   void dispose() {
@@ -45,18 +45,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurface),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('更多选项'),
-                  content: const Text('「更多选项」功能正在开发中，敬请期待！'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
-                  ],
-                ),
-              );
-            },
+            onPressed: () => _showSortBottomSheet(context),
           ),
         ],
       ),
@@ -74,13 +63,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
                       hintText: '搜索待办事项',
                       hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFBBBBBB)),
                       prefixIcon: const Icon(Icons.search, color: Color(0xFFBBBBBB)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18, color: Color(0xFFBBBBBB)),
@@ -99,7 +81,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
                   data: (types) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -134,6 +116,25 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
                     t.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                     (t.content?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false),
                   ).toList();
+                }
+                // Apply sort mode (default keeps repository order)
+                if (_sortMode != 'default') {
+                  filtered = List<Todo>.from(filtered);
+                  filtered.sort((a, b) {
+                    switch (_sortMode) {
+                      case 'due_date':
+                        final aDue = a.dueDate ?? 0;
+                        final bDue = b.dueDate ?? 0;
+                        return aDue.compareTo(bDue);
+                      case 'priority':
+                        const order = {'high': 0, 'medium': 1, 'low': 2};
+                        return (order[a.priority] ?? 1).compareTo(order[b.priority] ?? 1);
+                      case 'created_at':
+                        return b.createdAt.compareTo(a.createdAt);
+                      default:
+                        return 0;
+                    }
+                  });
                 }
                 if (filtered.isEmpty) {
                   return const Center(child: Text('暂无待办', style: TextStyle(color: Color(0xFF999999))));
@@ -214,7 +215,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8E8E8),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -257,6 +258,70 @@ class _TodoListPageState extends ConsumerState<TodoListPage> {
     await repo.updateTodo(updated);
     ref.invalidate(todoNotifierProvider);
     ref.invalidate(todoStatsProvider);
+  }
+
+  void _showSortBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('排序方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                  const SizedBox(height: 12),
+                  RadioListTile<String>(
+                    title: const Text('默认排序'),
+                    subtitle: const Text('置顶 + 截止日期 + 优先级'),
+                    value: 'default',
+                    groupValue: _sortMode,
+                    onChanged: (value) {
+                      setModalState(() => _sortMode = value!);
+                      setState(() {});
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('截止日期'),
+                    value: 'due_date',
+                    groupValue: _sortMode,
+                    onChanged: (value) {
+                      setModalState(() => _sortMode = value!);
+                      setState(() {});
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('优先级'),
+                    value: 'priority',
+                    groupValue: _sortMode,
+                    onChanged: (value) {
+                      setModalState(() => _sortMode = value!);
+                      setState(() {});
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('创建时间'),
+                    value: 'created_at',
+                    groupValue: _sortMode,
+                    onChanged: (value) {
+                      setModalState(() => _sortMode = value!);
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showAddDialog(BuildContext context) {
@@ -326,7 +391,7 @@ class _TodoItem extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                        color: todo.isCompleted ? Theme.of(context).colorScheme.outline : const Color(0xFF333333),
+                        color: todo.isCompleted ? Theme.of(context).colorScheme.outline : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),

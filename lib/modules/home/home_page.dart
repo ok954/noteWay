@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/helpers.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/stats_provider.dart';
-import '../../providers/todo_provider.dart';
 import '../../router.dart';
 
 class HomePage extends ConsumerWidget {
@@ -154,7 +154,7 @@ class HomePage extends ConsumerWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
-              _habitIcon(habit.name),
+              habitIcon(habit.name),
               size: 16,
               color: isCompleted ? const Color(0xFF34A853) : cs.outline,
             ),
@@ -175,7 +175,7 @@ class HomePage extends ConsumerWidget {
             const SizedBox(width: 4),
             if (habit.habitType != 'count')
               Text(
-                _formatDuration(habit.todayDuration),
+                formatDuration(habit.todayDuration),
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
           ] else
@@ -377,25 +377,4 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  IconData _habitIcon(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('书') || n.contains('读')) return Icons.menu_book;
-    if (n.contains('跑') || n.contains('步') || n.contains('运动')) return Icons.directions_run;
-    if (n.contains('水')) return Icons.local_drink;
-    if (n.contains('想') || n.contains('冥想')) return Icons.self_improvement;
-    if (n.contains('琴') || n.contains('吉他')) return Icons.music_note;
-    if (n.contains('写')) return Icons.edit;
-    return Icons.star;
-  }
-
-  String _formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    final parts = <String>[];
-    if (h > 0) parts.add('${h}小时');
-    if (m > 0) parts.add('${m}分');
-    parts.add('${s}秒');
-    return parts.join('');
-  }
 }

@@ -84,4 +84,26 @@ class HabitRepository {
       'current_record_id': null,
     });
   }
+
+  /// 事务性打卡：插入记录 + 更新习惯计数器在同一事务中完成
+  Future<void> checkinWithRecord(CheckinRecord record, Habit updatedHabit) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      await txn.insert('checkin_records', record.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.update('habits', updatedHabit.toMap(),
+          where: 'id = ?', whereArgs: [updatedHabit.id]);
+    });
+  }
+
+  /// 事务性完成计时：更新记录 + 更新习惯在同一事务中完成
+  Future<void> completeCheckin(CheckinRecord record, Habit updatedHabit) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      await txn.update('checkin_records', record.toMap(),
+          where: 'id = ?', whereArgs: [record.id]);
+      await txn.update('habits', updatedHabit.toMap(),
+          where: 'id = ?', whereArgs: [updatedHabit.id]);
+    });
+  }
 }

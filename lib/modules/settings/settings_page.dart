@@ -52,9 +52,10 @@ class SettingsPage extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // 账户与云端
-          _buildSectionTitle('账户与云端'),
+          _buildSectionTitle(context, '账户与云端'),
           if (!isLoggedIn)
             _buildSettingItem(
+              context,
               icon: Icons.person_outline,
               iconColor: const Color(0xFF5B8DEF),
               title: '登录账号',
@@ -63,6 +64,7 @@ class SettingsPage extends ConsumerWidget {
             )
           else ...[
             _buildSettingItem(
+              context,
               icon: Icons.person,
               iconColor: const Color(0xFF5B8DEF),
               title: username,
@@ -70,6 +72,7 @@ class SettingsPage extends ConsumerWidget {
               onTap: null,
             ),
             _buildSettingItem(
+              context,
               icon: Icons.cloud_sync_outlined,
               iconColor: const Color(0xFF5B8DEF),
               title: '云端同步',
@@ -80,6 +83,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             _buildSettingItem(
+              context,
               icon: Icons.cloud_download_outlined,
               iconColor: const Color(0xFF5B8DEF),
               title: '云端数据管理',
@@ -90,6 +94,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             _buildSettingItem(
+              context,
               icon: Icons.logout,
               iconColor: Colors.red,
               title: '退出登录',
@@ -99,8 +104,9 @@ class SettingsPage extends ConsumerWidget {
             ),
           ],
           // 数据管理
-          _buildSectionTitle('数据管理'),
+          _buildSectionTitle(context, '数据管理'),
           _buildSettingItem(
+            context,
             icon: Icons.download_outlined,
             iconColor: const Color(0xFF34A853),
             title: '导出数据',
@@ -108,12 +114,14 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _exportData(context),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.upload_outlined,
             iconColor: const Color(0xFF34A853),
             title: '导入数据',
             onTap: () => _importData(context, ref),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.delete_outline,
             iconColor: const Color(0xFF34A853),
             title: '回收站',
@@ -121,6 +129,7 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showDevNotice(context, '回收站'),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.delete_forever,
             iconColor: AppColors.danger,
             title: '清除所有数据',
@@ -129,8 +138,9 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showClearConfirm(context, ref),
           ),
           // 个性化
-          _buildSectionTitle('个性化'),
+          _buildSectionTitle(context, '个性化'),
           _buildSettingItem(
+            context,
             icon: Icons.dark_mode_outlined,
             iconColor: const Color(0xFFFFA726),
             title: '主题',
@@ -138,6 +148,7 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showThemePicker(context, ref),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.font_download_outlined,
             iconColor: const Color(0xFFFFA726),
             title: '字体设置',
@@ -145,36 +156,51 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showFontPicker(context, ref),
           ),
           _buildSettingItem(
+            context,
+            icon: Icons.text_fields,
+            iconColor: const Color(0xFFFFA726),
+            title: '字体大小',
+            trailingText: '${(ref.watch(fontSizeProvider) * 100).round()}%',
+            onTap: () => _showFontSizePicker(context, ref),
+          ),
+          _buildSettingItem(
+            context,
             icon: Icons.volume_up_outlined,
             iconColor: const Color(0xFFFFA726),
             title: '提醒音效',
-            trailingText: '已开启',
-            onTap: () => _showDevNotice(context, '提醒音效'),
+            trailingText: ref.watch(reminderSoundProvider).enabled
+                ? ref.watch(reminderSoundProvider).label
+                : '已关闭',
+            onTap: () => _showSoundPicker(context, ref),
           ),
           // 安全与隐私
-          _buildSectionTitle('安全与隐私'),
+          _buildSectionTitle(context, '安全与隐私'),
           _buildSettingItem(
+            context,
             icon: Icons.lock_outline,
             iconColor: const Color(0xFFEA4335),
             title: '应用锁',
-            trailingText: '未开启',
-            onTap: () => _showDevNotice(context, '应用锁'),
+            trailingText: ref.watch(appLockProvider).enabled ? '已开启' : '未开启',
+            onTap: () => _showAppLockSettings(context, ref),
           ),
           // 其他
-          _buildSectionTitle('其他'),
+          _buildSectionTitle(context, '其他'),
           _buildSettingItem(
+            context,
             icon: Icons.help_outline,
             iconColor: const Color(0xFF9E9E9E),
             title: '使用帮助',
             onTap: () => _showDevNotice(context, '使用帮助'),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.share_outlined,
             iconColor: const Color(0xFF9E9E9E),
             title: '分享应用',
             onTap: () => _showDevNotice(context, '分享应用'),
           ),
           _buildSettingItem(
+            context,
             icon: Icons.info_outline,
             iconColor: const Color(0xFF9E9E9E),
             title: '关于',
@@ -186,14 +212,15 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-      child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF999999))),
+      child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 
-  Widget _buildSettingItem({
+  Widget _buildSettingItem(
+    BuildContext context, {
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -215,9 +242,9 @@ class SettingsPage extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(child: Text(title, style: const TextStyle(fontSize: 15))),
               if (trailingText != null && trailingText.isNotEmpty)
-                Text(trailingText, style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                Text(trailingText, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               if (showArrow) const SizedBox(width: 4),
-              if (showArrow) const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCCCCCC)),
+              if (showArrow) Icon(Icons.chevron_right, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             ],
           ),
         ),
@@ -351,7 +378,6 @@ class SettingsPage extends ConsumerWidget {
                   itemCount: appFonts.length,
                   itemBuilder: (context, index) {
                     final font = appFonts[index];
-                    final isSelected = font.id == currentId;
                     return RadioListTile<String>(
                       title: Text(font.name),
                       subtitle: Text(font.nameEn, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
@@ -370,6 +396,303 @@ class SettingsPage extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showFontSizePicker(BuildContext context, WidgetRef ref) {
+    double currentSize = ref.read(fontSizeProvider);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 20),
+                const Text('字体大小', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    const Text('小', style: TextStyle(fontSize: 12)),
+                    Expanded(
+                      child: Slider(
+                        value: currentSize,
+                        min: 0.8,
+                        max: 1.4,
+                        divisions: 6,
+                        label: '${(currentSize * 100).round()}%',
+                        onChanged: (value) {
+                          setModalState(() => currentSize = value);
+                          ref.read(fontSizeProvider.notifier).setFontSize(value);
+                        },
+                      ),
+                    ),
+                    const Text('大', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '预览：这是一段示例文字',
+                  style: TextStyle(fontSize: 14 * currentSize),
+                ),
+                const SizedBox(height: 16),
+                if (currentSize != 1.0)
+                  TextButton(
+                    onPressed: () {
+                      setModalState(() => currentSize = 1.0);
+                      ref.read(fontSizeProvider.notifier).setFontSize(1.0);
+                    },
+                    child: const Text('恢复默认'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSoundPicker(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(reminderSoundProvider);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('提醒音效', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: const Text('开启音效'),
+                subtitle: const Text('待办提醒和打卡计时结束时的提示音'),
+                value: settings.enabled,
+                onChanged: (value) {
+                  ref.read(reminderSoundProvider.notifier).setEnabled(value);
+                },
+              ),
+              const Divider(),
+              RadioListTile<String>(
+                title: const Text('默认'),
+                subtitle: const Text('系统默认提示音', style: TextStyle(fontSize: 12)),
+                value: 'default',
+                groupValue: settings.soundType,
+                onChanged: settings.enabled
+                    ? (value) {
+                        if (value != null) {
+                          ref.read(reminderSoundProvider.notifier).setSoundType(value);
+                          Navigator.pop(context);
+                        }
+                      }
+                    : null,
+              ),
+              RadioListTile<String>(
+                title: const Text('柔和'),
+                subtitle: const Text('轻柔的提示音', style: TextStyle(fontSize: 12)),
+                value: 'gentle',
+                groupValue: settings.soundType,
+                onChanged: settings.enabled
+                    ? (value) {
+                        if (value != null) {
+                          ref.read(reminderSoundProvider.notifier).setSoundType(value);
+                          Navigator.pop(context);
+                        }
+                      }
+                    : null,
+              ),
+              RadioListTile<String>(
+                title: const Text('铃声'),
+                subtitle: const Text('清脆的铃声', style: TextStyle(fontSize: 12)),
+                value: 'bell',
+                groupValue: settings.soundType,
+                onChanged: settings.enabled
+                    ? (value) {
+                        if (value != null) {
+                          ref.read(reminderSoundProvider.notifier).setSoundType(value);
+                          Navigator.pop(context);
+                        }
+                      }
+                    : null,
+              ),
+              RadioListTile<String>(
+                title: const Text('静音'),
+                subtitle: const Text('仅震动提醒', style: TextStyle(fontSize: 12)),
+                value: 'none',
+                groupValue: settings.soundType,
+                onChanged: settings.enabled
+                    ? (value) {
+                        if (value != null) {
+                          ref.read(reminderSoundProvider.notifier).setSoundType(value);
+                          Navigator.pop(context);
+                        }
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAppLockSettings(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(appLockProvider);
+    if (settings.enabled) {
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                const Text('应用锁', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.edit, size: 20),
+                  title: const Text('修改PIN码'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSetPinDialog(context, ref);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.lock_open, size: 20, color: Colors.red),
+                  title: const Text('关闭应用锁', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDisableLockConfirm(context, ref);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      _showSetPinDialog(context, ref);
+    }
+  }
+
+  void _showSetPinDialog(BuildContext context, WidgetRef ref) {
+    final pinController = TextEditingController();
+    final confirmController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('设置PIN码'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('请设置4-6位数字PIN码', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: '输入PIN码',
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: confirmController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: '确认PIN码',
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              pinController.dispose();
+              confirmController.dispose();
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final pin = pinController.text;
+              final confirm = confirmController.text;
+              if (pin.length < 4 || pin.length > 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN码需要4-6位数字')),
+                );
+                return;
+              }
+              if (pin != confirm) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('两次输入的PIN码不一致')),
+                );
+                return;
+              }
+              await ref.read(appLockProvider.notifier).setPin(pin);
+              pinController.dispose();
+              confirmController.dispose();
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('应用锁已开启')),
+                );
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisableLockConfirm(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('关闭应用锁'),
+        content: const Text('关闭后将不再需要PIN码即可进入应用，确定要关闭吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(appLockProvider.notifier).disable();
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('应用锁已关闭')),
+                );
+              }
+            },
+            child: const Text('关闭', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -491,26 +814,26 @@ class SettingsPage extends ConsumerWidget {
   void _showAboutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('关于记途'),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_note, size: 48, color: Color(0xFF5B8DEF)),
-            SizedBox(height: 12),
-            Text('记途', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text('v1.1.0', style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
-            SizedBox(height: 12),
+            const Icon(Icons.edit_note, size: 48, color: Color(0xFF5B8DEF)),
+            const SizedBox(height: 12),
+            const Text('记途', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('v1.1.0', style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 12),
             Text(
               '一款完全离线的个人备忘录应用，\n数据完全存储在本地设备。',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('确定')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('确定')),
         ],
       ),
     );

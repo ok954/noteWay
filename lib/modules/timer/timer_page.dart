@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/helpers.dart';
 import '../../models/checkin_record.dart';
 import '../../models/habit.dart';
 import '../../providers/habit_provider.dart';
-import '../../repositories/habit_repository.dart';
 
 class TimerPage extends ConsumerStatefulWidget {
   const TimerPage({super.key});
@@ -118,7 +118,6 @@ class _TimerPageState extends ConsumerState<TimerPage> {
       lastCheckinAt: now,
       updatedAt: now,
     );
-    await ref.read(habitNotifierProvider.notifier).updateHabit(updated);
 
     if (_currentRecord != null) {
       final completedRecord = _currentRecord!.copyWith(
@@ -126,7 +125,9 @@ class _TimerPageState extends ConsumerState<TimerPage> {
         duration: finalDuration,
         isCompleted: true,
       );
-      await ref.read(habitRepositoryProvider).updateCheckinRecord(completedRecord);
+      await ref.read(habitRepositoryProvider).completeCheckin(completedRecord, updated);
+    } else {
+      await ref.read(habitNotifierProvider.notifier).updateHabit(updated);
     }
     setState(() => _isCompleted = true);
 
@@ -159,18 +160,6 @@ class _TimerPageState extends ConsumerState<TimerPage> {
       return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
     }
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
-  /// 格式化时长：X小时X分X秒
-  String _formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    final parts = <String>[];
-    if (h > 0) parts.add('${h}小时');
-    if (m > 0) parts.add('${m}分');
-    parts.add('${s}秒');
-    return parts.join('');
   }
 
   Future<void> _toggleTimer() async {
@@ -256,14 +245,13 @@ class _TimerPageState extends ConsumerState<TimerPage> {
       lastCheckinAt: now,
       updatedAt: now,
     );
-    await ref.read(habitNotifierProvider.notifier).updateHabit(updated);
 
     final completedRecord = _currentRecord!.copyWith(
       endTime: now,
       duration: duration,
       isCompleted: true,
     );
-    await ref.read(habitRepositoryProvider).updateCheckinRecord(completedRecord);
+    await ref.read(habitRepositoryProvider).completeCheckin(completedRecord, updated);
 
     setState(() {
       _isRunning = false;
@@ -321,7 +309,7 @@ class _TimerPageState extends ConsumerState<TimerPage> {
             // 标签信息
             if (_habit != null) ...[
               Text(
-                '${_getTypeLabel(_habit!.habitType)} · ${_habit!.name}',
+                '${getHabitTypeLabel(_habit!.habitType)} · ${_habit!.name}',
                 style: const TextStyle(fontSize: 16, color: Color(0xFF999999)),
               ),
               const SizedBox(height: 24),
@@ -362,9 +350,9 @@ class _TimerPageState extends ConsumerState<TimerPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildStatItem('今日累计', _formatDuration(_habit!.todayDuration)),
+                  _buildStatItem('今日累计', formatDuration(_habit!.todayDuration)),
                   const SizedBox(width: 32),
-                  _buildStatItem('历史累计', _formatDuration(_habit!.totalDuration)),
+                  _buildStatItem('历史累计', formatDuration(_habit!.totalDuration)),
                 ],
               ),
               const SizedBox(height: 48),
@@ -452,16 +440,4 @@ class _TimerPageState extends ConsumerState<TimerPage> {
     );
   }
 
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'countdown':
-        return '倒计时';
-      case 'timer':
-        return '正向计时';
-      case 'count':
-        return '不计时';
-      default:
-        return '不计时';
-    }
-  }
 }

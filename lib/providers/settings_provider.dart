@@ -83,3 +83,117 @@ final currentFontProvider = Provider<AppFont>((ref) {
   final fontId = ref.watch(fontIdProvider);
   return findAppFontById(fontId) ?? defaultAppFont;
 });
+
+// ========== 字体大小 ==========
+
+final fontSizeProvider = NotifierProvider<FontSizeNotifier, double>(FontSizeNotifier.new);
+
+class FontSizeNotifier extends Notifier<double> {
+  static const String _key = 'font_size_multiplier';
+
+  @override
+  double build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getDouble(_key) ?? 1.0;
+  }
+
+  Future<void> setFontSize(double multiplier) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setDouble(_key, multiplier);
+    state = multiplier;
+  }
+}
+
+// ========== 提醒音效 ==========
+
+final reminderSoundProvider = NotifierProvider<ReminderSoundNotifier, ReminderSoundSettings>(ReminderSoundNotifier.new);
+
+class ReminderSoundSettings {
+  final bool enabled;
+  final String soundType; // 'default', 'gentle', 'bell', 'none'
+
+  const ReminderSoundSettings({this.enabled = true, this.soundType = 'default'});
+
+  String get label {
+    switch (soundType) {
+      case 'gentle': return '柔和';
+      case 'bell': return '铃声';
+      case 'none': return '静音';
+      default: return '默认';
+    }
+  }
+}
+
+class ReminderSoundNotifier extends Notifier<ReminderSoundSettings> {
+  static const String _enabledKey = 'reminder_sound_enabled';
+  static const String _typeKey = 'reminder_sound_type';
+
+  @override
+  ReminderSoundSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return ReminderSoundSettings(
+      enabled: prefs.getBool(_enabledKey) ?? true,
+      soundType: prefs.getString(_typeKey) ?? 'default',
+    );
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool(_enabledKey, enabled);
+    state = ReminderSoundSettings(enabled: enabled, soundType: state.soundType);
+  }
+
+  Future<void> setSoundType(String type) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString(_typeKey, type);
+    state = ReminderSoundSettings(enabled: state.enabled, soundType: type);
+  }
+}
+
+// ========== 应用锁 ==========
+
+final appLockProvider = NotifierProvider<AppLockNotifier, AppLockSettings>(AppLockNotifier.new);
+
+class AppLockSettings {
+  final bool enabled;
+  final String? pinHash;
+
+  const AppLockSettings({this.enabled = false, this.pinHash});
+
+  bool get hasPin => pinHash != null && pinHash!.isNotEmpty;
+}
+
+class AppLockNotifier extends Notifier<AppLockSettings> {
+  static const String _enabledKey = 'app_lock_enabled';
+  static const String _pinKey = 'app_lock_pin';
+
+  @override
+  AppLockSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return AppLockSettings(
+      enabled: prefs.getBool(_enabledKey) ?? false,
+      pinHash: prefs.getString(_pinKey),
+    );
+  }
+
+  Future<void> setPin(String pin) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    // Simple hash for local PIN (not cryptographic - just obfuscation)
+    final hash = pin.split('').map((c) => c.codeUnitAt(0)).reduce((a, b) => a * 31 + b).toString();
+    await prefs.setString(_pinKey, hash);
+    await prefs.setBool(_enabledKey, true);
+    state = AppLockSettings(enabled: true, pinHash: hash);
+  }
+
+  bool verifyPin(String pin) {
+    final hash = pin.split('').map((c) => c.codeUnitAt(0)).reduce((a, b) => a * 31 + b).toString();
+    return hash == state.pinHash;
+  }
+
+  Future<void> disable() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.remove(_pinKey);
+    await prefs.setBool(_enabledKey, false);
+    state = const AppLockSettings(enabled: false, pinHash: null);
+  }
+}

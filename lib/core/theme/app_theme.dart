@@ -8,18 +8,18 @@ class AppTheme {
   AppTheme._();
 
   /// 构建浅色主题
-  static ThemeData lightTheme([String? fontId]) {
+  static ThemeData lightTheme([String? fontId, double fontSize = 1.0]) {
     final font = fontId != null ? (findAppFontById(fontId) ?? defaultAppFont) : defaultAppFont;
-    return _buildTheme(Brightness.light, font);
+    return _buildTheme(Brightness.light, font, fontSize);
   }
 
   /// 构建深色主题
-  static ThemeData darkTheme([String? fontId]) {
+  static ThemeData darkTheme([String? fontId, double fontSize = 1.0]) {
     final font = fontId != null ? (findAppFontById(fontId) ?? defaultAppFont) : defaultAppFont;
-    return _buildTheme(Brightness.dark, font);
+    return _buildTheme(Brightness.dark, font, fontSize);
   }
 
-  static ThemeData _buildTheme(Brightness brightness, AppFont font) {
+  static ThemeData _buildTheme(Brightness brightness, AppFont font, double fontSize) {
     final isDark = brightness == Brightness.dark;
 
     final cs = ColorScheme.fromSeed(
@@ -84,7 +84,7 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
-      textTheme: _buildTextTheme(base.textTheme, cs.onSurface, cs.onSurfaceVariant),
+      textTheme: _buildTextTheme(base.textTheme, cs.onSurface, cs.onSurfaceVariant, fontSize),
       dividerTheme: DividerThemeData(
         color: cs.outlineVariant,
         thickness: 1,
@@ -132,23 +132,28 @@ class AppTheme {
     );
   }
 
-  static TextTheme _buildTextTheme(TextTheme base, Color primary, Color secondary) {
-    return base.copyWith(
-      displayLarge: base.displayLarge?.copyWith(color: primary, fontWeight: FontWeight.w700),
-      displayMedium: base.displayMedium?.copyWith(color: primary, fontWeight: FontWeight.w700),
-      displaySmall: base.displaySmall?.copyWith(color: primary, fontWeight: FontWeight.w600),
-      headlineLarge: base.headlineLarge?.copyWith(color: primary, fontWeight: FontWeight.w600),
-      headlineMedium: base.headlineMedium?.copyWith(color: primary, fontWeight: FontWeight.w600),
-      headlineSmall: base.headlineSmall?.copyWith(color: primary, fontWeight: FontWeight.w600),
-      titleLarge: base.titleLarge?.copyWith(color: primary, fontWeight: FontWeight.w600),
-      titleMedium: base.titleMedium?.copyWith(color: primary, fontWeight: FontWeight.w500),
-      titleSmall: base.titleSmall?.copyWith(color: primary, fontWeight: FontWeight.w500),
-      bodyLarge: base.bodyLarge?.copyWith(color: primary, fontWeight: FontWeight.w400, height: 1.5),
-      bodyMedium: base.bodyMedium?.copyWith(color: primary, fontWeight: FontWeight.w400, height: 1.5),
-      bodySmall: base.bodySmall?.copyWith(color: secondary, fontWeight: FontWeight.w400, height: 1.4),
-      labelLarge: base.labelLarge?.copyWith(color: primary, fontWeight: FontWeight.w500),
-      labelMedium: base.labelMedium?.copyWith(color: secondary, fontWeight: FontWeight.w500),
-      labelSmall: base.labelSmall?.copyWith(color: secondary, fontWeight: FontWeight.w400),
+  static TextTheme _buildTextTheme(TextTheme base, Color primary, Color secondary, double scale) {
+    TextStyle scaleStyle(TextStyle? style) {
+      if (style == null) return TextStyle(fontSize: 14 * scale);
+      final size = (style.fontSize ?? 14) * scale;
+      return style.copyWith(fontSize: size);
+    }
+    return TextTheme(
+      displayLarge: scaleStyle(base.displayLarge).copyWith(color: primary, fontWeight: FontWeight.w700),
+      displayMedium: scaleStyle(base.displayMedium).copyWith(color: primary, fontWeight: FontWeight.w700),
+      displaySmall: scaleStyle(base.displaySmall).copyWith(color: primary, fontWeight: FontWeight.w600),
+      headlineLarge: scaleStyle(base.headlineLarge).copyWith(color: primary, fontWeight: FontWeight.w600),
+      headlineMedium: scaleStyle(base.headlineMedium).copyWith(color: primary, fontWeight: FontWeight.w600),
+      headlineSmall: scaleStyle(base.headlineSmall).copyWith(color: primary, fontWeight: FontWeight.w600),
+      titleLarge: scaleStyle(base.titleLarge).copyWith(color: primary, fontWeight: FontWeight.w600),
+      titleMedium: scaleStyle(base.titleMedium).copyWith(color: primary, fontWeight: FontWeight.w500),
+      titleSmall: scaleStyle(base.titleSmall).copyWith(color: primary, fontWeight: FontWeight.w500),
+      bodyLarge: scaleStyle(base.bodyLarge).copyWith(color: primary, fontWeight: FontWeight.w400, height: 1.5),
+      bodyMedium: scaleStyle(base.bodyMedium).copyWith(color: primary, fontWeight: FontWeight.w400, height: 1.5),
+      bodySmall: scaleStyle(base.bodySmall).copyWith(color: secondary, fontWeight: FontWeight.w400, height: 1.4),
+      labelLarge: scaleStyle(base.labelLarge).copyWith(color: primary, fontWeight: FontWeight.w500),
+      labelMedium: scaleStyle(base.labelMedium).copyWith(color: secondary, fontWeight: FontWeight.w500),
+      labelSmall: scaleStyle(base.labelSmall).copyWith(color: secondary, fontWeight: FontWeight.w400),
     );
   }
 }

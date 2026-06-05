@@ -93,6 +93,10 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
             onPressed: _insertImage,
           ),
           IconButton(
+            icon: const Icon(Icons.link),
+            onPressed: _insertLink,
+          ),
+          IconButton(
             icon: const Icon(Icons.check),
             onPressed: _saveNote,
           ),
@@ -122,21 +126,21 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
               showFontSize: false,
               showColorButton: false,
               showBackgroundColorButton: false,
-              showClearFormat: false,
-              showHeaderStyle: false,
-              showListCheck: false,
-              showCodeBlock: false,
+              showClearFormat: true,
+              showHeaderStyle: true,
+              showListCheck: true,
+              showCodeBlock: true,
               showSubscript: false,
               showSuperscript: false,
               showDirection: false,
               showSearchButton: false,
-              showRedo: false,
-              showUndo: false,
-              showQuote: false,
+              showRedo: true,
+              showUndo: true,
+              showQuote: true,
               showIndent: false,
-              showLink: false,
-              showStrikeThrough: false,
-              showInlineCode: false,
+              showLink: true,
+              showStrikeThrough: true,
+              showInlineCode: true,
               showSmallButton: false,
               showLineHeightButton: false,
               multiRowsDisplay: true,
@@ -200,6 +204,82 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     }
   }
 
+  Future<void> _insertLink() async {
+    final urlController = TextEditingController();
+    final textController = TextEditingController();
+
+    // Get selected text as default
+    final selection = _quillController.selection;
+    if (selection.isCollapsed == false) {
+      final selectedText = _quillController.document.toPlainText().substring(
+        selection.start,
+        selection.end,
+      );
+      textController.text = selectedText;
+    }
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('插入链接'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
+                hintText: '链接文本（可选）',
+                prefixIcon: Icon(Icons.text_fields),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                hintText: 'https://example.com',
+                prefixIcon: Icon(Icons.link),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              final url = urlController.text.trim();
+              if (url.isNotEmpty) {
+                Navigator.pop(context, {'url': url, 'text': textController.text.trim()});
+              }
+            },
+            child: const Text('插入'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return;
+
+    final url = result['url']!;
+    final linkText = result['text']?.isNotEmpty == true ? result['text']! : url;
+
+    final index = _quillController.selection.baseOffset;
+    final length = _quillController.selection.extentOffset - index;
+
+    if (length > 0) {
+      // Apply link to selected text
+      _quillController.formatText(index, length, LinkAttribute(url));
+    } else {
+      // Insert link text with URL
+      _quillController.replaceText(index, 0, linkText, null);
+      _quillController.formatText(index, linkText.length, LinkAttribute(url));
+      _quillController.moveCursorToPosition(index + linkText.length);
+    }
+  }
+
   Future<void> _saveNote() async {
     if (_isSaving) return;
     final title = _titleController.text.trim();
@@ -220,7 +300,7 @@ class _NoteEditPageState extends ConsumerState<NoteEditPage> {
     try {
       final paths = <String>[];
       for (final op in delta.toJson()) {
-        if (op is Map && op['insert'] is Map) {
+        if (op['insert'] is Map) {
           final insert = op['insert'] as Map;
           if (insert.containsKey('image')) {
             final path = insert['image'] as String?;

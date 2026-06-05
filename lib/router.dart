@@ -7,6 +7,7 @@ import 'modules/todos/todo_list_page.dart';
 import 'modules/habits/habit_list_page.dart';
 import 'modules/timer/timer_page.dart';
 import 'modules/settings/settings_page.dart';
+import 'modules/lock/lock_screen_page.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -19,6 +20,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String cloudSync = '/settings/cloud-sync';
   static const String cloudData = '/settings/cloud-data';
+  static const String lock = '/lock';
 
   static Map<String, WidgetBuilder> get routes => {
     home: (context) => const HomePage(),
@@ -29,5 +31,6 @@ class AppRoutes {
     habits: (context) => const HabitListPage(),
     timer: (context) => const TimerPage(),
     settings: (context) => const SettingsPage(),
+    lock: (context) => const LockScreenPage(),
   };
 }

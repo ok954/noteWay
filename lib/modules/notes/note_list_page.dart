@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
+import '../../models/note.dart';
 import '../../providers/note_provider.dart';
 import '../../router.dart';
 
@@ -18,6 +19,8 @@ class NoteListPage extends ConsumerStatefulWidget {
 class _NoteListPageState extends ConsumerState<NoteListPage> {
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  String _sortField = 'updated_at';
+  bool _sortAscending = false;
 
   @override
   void dispose() {
@@ -27,7 +30,7 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final notesAsync = ref.watch(noteNotifierProvider);
+    final notesAsync = ref.watch(noteSearchProvider(_searchQuery));
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -72,18 +75,7 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('排序筛选'),
-                        content: const Text('「排序筛选」功能正在开发中，敬请期待！'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
-                        ],
-                      ),
-                    );
-                  },
+                  onTap: () => _showSortBottomSheet(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -94,7 +86,7 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
                       children: [
                         Icon(Icons.sort, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
-                        Text('排序筛选', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        Text(_getSortLabel(), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -105,15 +97,22 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
           Expanded(
             child: notesAsync.when(
               data: (notes) {
-                var filtered = notes;
-                if (_searchQuery.isNotEmpty) {
-                  filtered = filtered.where((n) {
-                    final title = n.title?.toLowerCase() ?? '';
-                    final text = n.plainText?.toLowerCase() ?? '';
-                    final q = _searchQuery.toLowerCase();
-                    return title.contains(q) || text.contains(q);
-                  }).toList();
-                }
+                var filtered = List<Note>.from(notes);
+                filtered.sort((a, b) {
+                  int cmp;
+                  switch (_sortField) {
+                    case 'created_at':
+                      cmp = a.createdAt.compareTo(b.createdAt);
+                      break;
+                    case 'title':
+                      cmp = (a.title ?? '').compareTo(b.title ?? '');
+                      break;
+                    default: // updated_at
+                      cmp = a.updatedAt.compareTo(b.updatedAt);
+                      break;
+                  }
+                  return _sortAscending ? cmp : -cmp;
+                });
                 if (filtered.isEmpty) {
                   return Center(
                     child: Text('暂无笔记，点击右下角添加', style: TextStyle(color: Theme.of(context).colorScheme.outline)),
@@ -142,6 +141,85 @@ class _NoteListPageState extends ConsumerState<NoteListPage> {
         backgroundColor: const Color(0xFFFFA726),
         child: const Icon(Icons.add, color: Colors.white),
       ),
+    );
+  }
+
+  String _getSortLabel() {
+    String field;
+    switch (_sortField) {
+      case 'created_at':
+        field = '创建时间';
+        break;
+      case 'title':
+        field = '标题';
+        break;
+      default:
+        field = '最近编辑';
+    }
+    return field;
+  }
+
+  void _showSortBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('排序方式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                  const SizedBox(height: 12),
+                  RadioListTile<String>(
+                    title: const Text('最近编辑'),
+                    value: 'updated_at',
+                    groupValue: _sortField,
+                    onChanged: (value) {
+                      setModalState(() => _sortField = value!);
+                      setState(() {});
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('创建时间'),
+                    value: 'created_at',
+                    groupValue: _sortField,
+                    onChanged: (value) {
+                      setModalState(() => _sortField = value!);
+                      setState(() {});
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('标题'),
+                    value: 'title',
+                    groupValue: _sortField,
+                    onChanged: (value) {
+                      setModalState(() => _sortField = value!);
+                      setState(() {});
+                    },
+                  ),
+                  const Divider(),
+                  SwitchListTile(
+                    title: Text(_sortAscending ? '升序' : '降序'),
+                    subtitle: Text(_sortAscending ? '从旧到新 / A-Z' : '从新到旧 / Z-A'),
+                    value: _sortAscending,
+                    onChanged: (value) {
+                      setModalState(() => _sortAscending = value);
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
