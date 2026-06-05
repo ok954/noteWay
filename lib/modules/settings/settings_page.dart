@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/fonts.dart';
 import '../../core/database/database_helper.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/habit_provider.dart';
@@ -140,8 +141,8 @@ class SettingsPage extends ConsumerWidget {
             icon: Icons.font_download_outlined,
             iconColor: const Color(0xFFFFA726),
             title: '字体设置',
-            trailingText: '标准',
-            onTap: () => _showDevNotice(context, '字体设置'),
+            trailingText: ref.watch(currentFontProvider).name,
+            onTap: () => _showFontPicker(context, ref),
           ),
           _buildSettingItem(
             icon: Icons.volume_up_outlined,
@@ -309,6 +310,62 @@ class SettingsPage extends ConsumerWidget {
                     Navigator.pop(context);
                   }
                 },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFontPicker(BuildContext context, WidgetRef ref) {
+    final currentId = ref.read(fontIdProvider);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('选择字体', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.55,
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: appFonts.length,
+                  itemBuilder: (context, index) {
+                    final font = appFonts[index];
+                    final isSelected = font.id == currentId;
+                    return RadioListTile<String>(
+                      title: Text(font.name),
+                      subtitle: Text(font.nameEn, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      value: font.id,
+                      groupValue: currentId,
+                      onChanged: (value) {
+                        if (value != null) {
+                          ref.read(fontIdProvider.notifier).setFont(value);
+                          Navigator.pop(context);
+                        }
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),

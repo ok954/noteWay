@@ -12,12 +12,13 @@ class MemoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final fontId = ref.watch(fontIdProvider);
 
     return MaterialApp(
       title: '记途',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme(fontId),
+      darkTheme: AppTheme.darkTheme(fontId),
       themeMode: themeMode,
       locale: const Locale('zh', 'CN'),
       localizationsDelegates: const [
@@ -33,7 +34,6 @@ class MemoApp extends ConsumerWidget {
       routes: AppRoutes.routes,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
-        // 桌面端宽屏幕限制内容最大宽度，居中显示
         if (mq.size.width > 800 && child != null) {
           return Container(
             color: Theme.of(context).scaffoldBackgroundColor,

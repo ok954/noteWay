@@ -2,112 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../constants/app_colors.dart';
+import '../constants/fonts.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static const List<String> fontFallback = [
-    'PingFang SC',
-    'Microsoft YaHei',
-    'Noto Sans SC',
-    'sans-serif',
-  ];
-
-  // ========== 浅色主题 ==========
-  static ThemeData get lightTheme {
-    final cs = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.light,
-      surface: const Color(0xFFF5F7FA),
-    );
-    final base = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: cs,
-      scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-      fontFamily: GoogleFonts.notoSansSc().fontFamily,
-      fontFamilyFallback: fontFallback,
-    );
-
-    return base.copyWith(
-      appBarTheme: AppBarTheme(
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        titleTextStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurface,
-          letterSpacing: 0.5,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: cs.surfaceContainerLow,
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: cs.primary,
-        foregroundColor: cs.onPrimary,
-        elevation: 2,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: cs.surfaceContainerHighest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-      textTheme: _buildTextTheme(base.textTheme, cs.onSurface, cs.onSurfaceVariant),
-      dividerTheme: DividerThemeData(
-        color: cs.outlineVariant,
-        thickness: 1,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: cs.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: cs.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-      ),
-    );
+  /// 构建浅色主题
+  static ThemeData lightTheme([String? fontId]) {
+    final font = fontId != null ? (findAppFontById(fontId) ?? defaultAppFont) : defaultAppFont;
+    return _buildTheme(Brightness.light, font);
   }
 
-  // ========== 深色主题 ==========
-  static ThemeData get darkTheme {
+  /// 构建深色主题
+  static ThemeData darkTheme([String? fontId]) {
+    final font = fontId != null ? (findAppFontById(fontId) ?? defaultAppFont) : defaultAppFont;
+    return _buildTheme(Brightness.dark, font);
+  }
+
+  static ThemeData _buildTheme(Brightness brightness, AppFont font) {
+    final isDark = brightness == Brightness.dark;
+
     final cs = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      brightness: Brightness.dark,
-      surface: const Color(0xFF121212),
+      brightness: brightness,
     );
+
+    // 尝试加载 Google Fonts，失败时使用系统回退
+    String? resolvedFontFamily;
+    try {
+      resolvedFontFamily = GoogleFonts.getFont(font.googleFontFamily).fontFamily;
+    } catch (_) {
+      resolvedFontFamily = null;
+    }
+
     final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       colorScheme: cs,
-      scaffoldBackgroundColor: const Color(0xFF121212),
-      fontFamily: GoogleFonts.notoSansSc().fontFamily,
-      fontFamilyFallback: fontFallback,
+      scaffoldBackgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA),
+      fontFamily: resolvedFontFamily ?? font.effectiveFont,
+      fontFamilyFallback: fontFallbackStack,
     );
 
     return base.copyWith(
       appBarTheme: AppBarTheme(
         centerTitle: true,
         elevation: 0,
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : cs.surface,
         foregroundColor: cs.onSurface,
         titleTextStyle: TextStyle(
           fontSize: 18,
@@ -119,7 +60,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: const Color(0xFF1E1E1E),
+        color: isDark ? const Color(0xFF1E1E1E) : cs.surfaceContainerLow,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: cs.primary,
@@ -128,7 +69,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF2A2A2A),
+        fillColor: isDark ? const Color(0xFF2A2A2A) : cs.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -149,20 +90,18 @@ class AppTheme {
         thickness: 1,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : cs.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : cs.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: isDark ? const Color(0xFF2A2A2A) : null,
         selectedColor: cs.primaryContainer,
-        labelStyle: TextStyle(color: cs.onSurface, fontSize: 13),
-        secondaryLabelStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide.none,
       ),
@@ -185,7 +124,7 @@ class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
-          backgroundColor: const Color(0xFF2A2A2A),
+          backgroundColor: isDark ? const Color(0xFF2A2A2A) : null,
           selectedBackgroundColor: cs.primaryContainer,
           foregroundColor: cs.onSurface,
         ),
